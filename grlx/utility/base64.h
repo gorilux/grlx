@@ -46,10 +46,11 @@ namespace grlx {
 #if defined(__BORLANDC__)
 			typedef char value_type;
 #else
-			typedef typename InIter::value_type value_type;
+            //typedef typename InIter::value_type value_type;
+            typedef char value_type;
 #endif
-            grlx::basic_base64_encoder<value_type> f;
-            return grlx::convert(first, last, result, f);
+                        grlx::basic_base64_encoder<value_type> f;
+                        return grlx::convert(first, last, result, f);
 		}
 		
 		/* ----------------------------------------------------------------- */
@@ -59,7 +60,7 @@ namespace grlx {
 			if (src.empty()) return std::basic_string<char>();
 			std::basic_string<char> dest;
 			std::insert_iterator<std::basic_string<char> > out(dest, dest.begin());
-            grlx::base64::encode(src.begin(), src.end(), out);
+                        grlx::base64::encode(src.begin(), src.end(), out);
 			return dest;
 		}
 		
@@ -68,7 +69,7 @@ namespace grlx {
 		/* ----------------------------------------------------------------- */
 		inline std::basic_string<char> encode(const char* src) {
 			std::basic_string<char> tmp(src);
-            return grlx::base64::encode(tmp);
+                        return grlx::base64::encode(tmp);
 		}
 		
 		/* ----------------------------------------------------------------- */
@@ -92,7 +93,8 @@ namespace grlx {
 #if defined(__BORLANDC__)
 			typedef char value_type;
 #else
-			typedef typename InIter::value_type value_type;
+            //typedef typename InIter::value_type value_type;
+            typedef char value_type;
 #endif
             grlx::basic_base64_decoder<value_type> f;
             return grlx::convert(first, last, result, f);
@@ -105,7 +107,7 @@ namespace grlx {
 			if (src.empty()) return std::basic_string<char>();
 			std::basic_string<char> dest;
 			std::insert_iterator<std::basic_string<char> > out(dest, dest.begin());
-            grlx::base64::decode(src.begin(), src.end(), out);
+                        grlx::base64::decode(src.begin(), src.end(), out);
 			return dest;
 		}
 		
@@ -114,7 +116,7 @@ namespace grlx {
 		/* ----------------------------------------------------------------- */
 		inline std::basic_string<char> decode(const char* src) {
 			std::basic_string<char> tmp(src);
-            return grlx::base64::decode(tmp);
+                        return grlx::base64::decode(tmp);
 		}
 		
 		/* ----------------------------------------------------------------- */
@@ -128,7 +130,7 @@ namespace grlx {
 		inline std::basic_string<char> decode(const char* src, size_t n) {
 			if (n == 0) return std::basic_string<char>();
 			std::basic_string<char> tmp(src, n);
-            return grlx::base64::decode(tmp);
+                        return grlx::base64::decode(tmp);
 		}
 	}
 }

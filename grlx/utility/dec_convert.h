@@ -35,15 +35,15 @@
 #ifndef CLX_DEC_CONVERT_H
 #define CLX_DEC_CONVERT_H
 
-#include "config.h"
+#include "../details/config.h"
 #include <iomanip>
 #include <iterator>
 #include <string>
 #include <sstream>
 #include "literal.h"
-#include "mpl/bitmask.h"
+#include <grlx/tmpl/bitmask.h>
 
-namespace clx {
+namespace grlx {
 	/* --------------------------------------------------------------------- */
 	//  basic_dec_encoder
 	/* --------------------------------------------------------------------- */
@@ -82,7 +82,7 @@ namespace clx {
 			std::basic_stringstream<char_type, traits> ss;
 			if (!prefix_.empty()) ss << prefix_;
 			ss << std::setw(width) << std::setfill(LITERAL('0'));
-			ss << (static_cast<size_type>(c) & mpl::lower_mask<sizeof(char_type) * 8>::value);
+            ss << (static_cast<size_type>(c) & tmpl::lower_mask<sizeof(char_type) * 8>::value);
 			if (!suffix_.empty()) ss << suffix_;
 			
 			std::istreambuf_iterator<char_type> first(ss);

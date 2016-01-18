@@ -41,7 +41,12 @@
 #include <algorithm>
 #include <iterator>
 
-#include "json_encoder.h"
+#include <grlx/utility/base64.h>
+#include <grlx/utility/convert.h>
+
+#include <grlx/rpc/json_encoder.h>
+
+
 
 namespace grlx {
 
@@ -154,9 +159,10 @@ struct JsonTypeEncoder<std::vector<uint8_t>, Details::StdContainerType>
     template<typename Writer>
     static void encode(std::vector<uint8_t> const& value, Writer& writer)
     {
-        std::string hexStr;
-        Convert::toHex(value.begin(), value.end(), std::back_inserter(hexStr));
-        writer.String(hexStr);
+
+        std::string result;
+        base64::encode(value.begin(), value.end(), std::back_inserter(result));
+        writer.String(result);
     }
 
     static bool decode(std::vector<uint8_t>& value,  rapidjson::Document::GenericValue const& jsonValue)
@@ -164,7 +170,7 @@ struct JsonTypeEncoder<std::vector<uint8_t>, Details::StdContainerType>
         auto size = jsonValue.GetStringLength();
         auto begin = jsonValue.GetString();
         auto end = begin + size;
-        Convert::fromHex(begin, end, std::back_inserter(value));
+        base64::decode(begin, end, std::back_inserter(value));
         return true;
     }
 

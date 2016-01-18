@@ -34,8 +34,8 @@
 #include <iterator>
 #include <string>
 #include <sstream>
+#include <grlx/tmpl/bitmask.h>
 #include "literal.h"
-#include "mpl/bitmask.h"
 
 namespace grlx {
 	/* --------------------------------------------------------------------- */
@@ -77,7 +77,7 @@ namespace grlx {
 			if (!prefix_.empty()) ss << prefix_;
 			if (!lower_) ss << std::uppercase;
 			ss << std::setw(width) << std::setfill((char_type)LITERAL('0')) << std::hex;
-			ss << (static_cast<size_type>(c) & mpl::lower_mask<sizeof(char_type) * 8>::value);
+            ss << (static_cast<size_type>(c) & tmpl::lower_mask<sizeof(char_type) * 8>::value);
 			if (!suffix_.empty()) ss << suffix_;
 			
 			std::istreambuf_iterator<char_type> first(ss);
