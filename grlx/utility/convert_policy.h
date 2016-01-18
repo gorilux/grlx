@@ -24,9 +24,13 @@
 /// @author David Salvador Pinheiro
 /// @author Copyright 2015, David Salvador Pinheiro
 ////////////////////////////////////////////////////////////////////////////////
+#ifndef CLX_CONVERT_POLICY_H
+#define CLX_CONVERT_POLICY_H
 
-#ifndef GRLX_FSM_H
-#define GRLX_FSM_H
+#include "base64_convert.h"
+#include "hex_convert.h"
+#include "dec_convert.h"
+//#include "html_convert.h"
+//#include "uri_convert.h"
 
-
-#endif
+#endif // CLX_CONVERT_POLICY_H

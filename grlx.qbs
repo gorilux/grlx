@@ -2,7 +2,11 @@ import qbs
 
 Product {
     name: "grlx"
+    Depends { name: "cpp" }
+
+    cpp.includePaths: [ "." ]
     files: ["**/*.h"]
+
     Export {
         Depends { name: "cpp" }
 

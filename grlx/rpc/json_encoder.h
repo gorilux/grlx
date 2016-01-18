@@ -1,0 +1,511 @@
+////////////////////////////////////////////////////////////////////////////////
+/// @brief
+///
+/// @file
+///
+/// DISCLAIMER
+///
+/// Copyright 2015 David Salvador Pinheiro
+///
+/// Licensed under the Apache License, Version 2.0 (the "License");
+/// you may not use this file except in compliance with the License.
+/// You may obtain a copy of the License at
+///
+///     http://www.apache.org/licenses/LICENSE-2.0
+///
+/// Unless required by applicable law or agreed to in writing, software
+/// distributed under the License is distributed on an "AS IS" BASIS,
+/// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+/// See the License for the specific language governing permissions and
+/// limitations under the License.
+///
+/// Copyright holder is David Salvador Pinheiro
+///
+/// @author David Salvador Pinheiro
+/// @author Copyright 2015, David Salvador Pinheiro
+////////////////////////////////////////////////////////////////////////////////
+
+#ifndef GRLX_RPC_JSON_ENCODER_H
+#define GRLX_RPC_JSON_ENCODER_H
+
+#include <type_traits>
+#include <tuple>
+#include <memory>
+#include <iterator>
+#include <rapidjson/rapidjson.h>
+#include <rapidjson/writer.h>
+#include <rapidjson/reader.h>
+#include <rapidjson/memorybuffer.h>
+#include <rapidjson/memorystream.h>
+#include <rapidjson/document.h>
+
+#include "types.h"
+#include "utility.h"
+#include "message.h"
+
+
+namespace grlx {
+
+
+namespace rpc{
+
+namespace Details
+{
+
+
+template<typename T, typename TagT = typename TypeID<T>::Tag >
+struct JsonTypeEncoder;
+
+
+template<typename T>
+class Packer
+{
+
+public:
+    Packer(T& t)
+        : t_(t){}
+
+    template<typename...TArgs>
+    void pack(TArgs const&... args)
+    {
+        packHelper(t_,args...);
+    }
+
+    template<typename...TArgs>
+    bool unpack(TArgs&... args)
+    {
+        //return decode(t_, args...);
+        return false;
+    }
+private:
+
+    template<typename Writer, typename U, typename ...TArgs>
+    static void packHelper(Writer& writer, U const& u, TArgs const& ...args)
+    {
+        typedef typename std::remove_reference<U>::type V;
+        JsonTypeEncoder<typename std::remove_cv<V>::type >::encode(u, writer);
+
+        packHelper(writer, args...);
+    }
+    template<typename Writer>
+    static void packHelper(Writer&) { }
+
+    T& t_;
+};
+
+
+
+template<typename ...ArgsT>
+struct JsonTypeEncoder< Request<ArgsT...>, Details::RequestType >
+{
+    template<typename Writer>
+    static void encode(Request<ArgsT...> const& msg, Writer& writer)
+    {
+
+        using ArgsTuple = typename Request<ArgsT...>::ArgsType;
+
+        writer.StartObject();
+        writer.Key("jsonrpc");
+        writer.String("2.0");
+        writer.Key("method");
+        writer.String(msg.method);
+
+        writer.Key("params");
+        writer.StartArray();
+        JsonTypeEncoder<ArgsTuple>::encode(msg.args, writer);
+        writer.EndArray();
+
+        writer.Key("id");
+        writer.Int(msg.id);
+        writer.EndObject();
+    }
+
+};
+
+
+template<typename T>
+struct JsonTypeEncoder< Reply<T>, Details::ReplyType >
+{
+    template<typename Writer>
+    static void encode(Reply<T> const& msg, Writer& writer)
+    {
+
+
+        writer.StartObject();
+        writer.Key("jsonrpc");
+        writer.String("2.0");
+
+        writer.Key("result");
+        JsonTypeEncoder<T>::encode(msg.result, writer);
+
+        writer.Key("id");
+        writer.Int(msg.id);
+        writer.EndObject();
+    }
+
+};
+
+template<>
+struct JsonTypeEncoder< Reply<void>, Details::ReplyType >
+{
+    template<typename Writer>
+    static void encode(Reply<void> const& msg, Writer& writer)
+    {
+        writer.StartObject();
+        writer.Key("jsonrpc");
+        writer.String("2.0");
+
+        writer.Key("result");
+        writer.Null();
+
+        writer.Key("id");
+        writer.Int(msg.id);
+        writer.EndObject();
+    }
+
+};
+
+template<typename ...ArgsT>
+struct JsonTypeEncoder< Notification<ArgsT...>, Details::NotificationType >
+{
+    template<typename Writer>
+    static void encode(Notification<ArgsT...> const& msg, Writer& writer)
+    {
+
+        using ArgsTuple = typename Request<ArgsT...>::ArgsType;
+
+        writer.StartObject();
+        writer.Key("jsonrpc");
+        writer.String("2.0");
+        writer.Key("method");
+        writer.String(msg.method);
+
+        writer.Key("params");
+        writer.StartArray();
+        JsonTypeEncoder<ArgsTuple>::encode(msg.args, writer);
+        writer.EndArray();
+
+
+        writer.EndObject();
+    }
+
+};
+
+
+
+template<typename ...ArgsT>
+struct JsonTypeEncoder<std::tuple<ArgsT...>, Details::TupleType>
+{
+    using TupleT = std::tuple<ArgsT...>;
+
+    template<typename T>
+    using EncoderType = JsonTypeEncoder<T>;
+
+    template<typename Writer>
+    static void encode(TupleT const& args, Writer& writer)
+    {
+
+        TupleEncoder<EncoderType, TupleT >::encode(args, writer);        
+
+    }
+
+//    template<typename Reader>
+//    static bool decode(TupleT& args, Reader& reader)
+//    {
+//        return TupleEncoder<EncoderType, TupleT >::decode(args, reader);
+//    }
+
+    static bool decode(TupleT& args, rapidjson::Document::ConstValueIterator& itr)
+    {
+        bool ret = TupleEncoder<EncoderType, TupleT >::decode(args, itr);
+        return ret;
+    }
+};
+
+
+template<typename T>
+struct JsonTypeEncoder<T, Details::FundamentalType>
+{
+
+    template<typename U, typename Writer>
+    static typename std::enable_if<
+        std::is_unsigned<U>::value && std::is_integral<U>::value
+    >::type
+    encode(U value, Writer& writer)
+    {        
+        writer.UInt(value);
+    }
+
+    template<typename U, typename Writer>
+    static typename std::enable_if<
+        std::is_signed<U>::value &&  std::is_integral<U>::value
+    >::type
+    encode(U value, Writer& writer)
+    {
+        writer.Int(value);
+    }
+
+    template<typename U, typename Writer>
+    static typename std::enable_if<
+        std::is_floating_point<U>::value
+    >::type
+    encode(U value, Writer& writer)
+    {
+        writer.Double(value);
+    }
+
+    template<typename U>
+    static typename std::enable_if<
+        std::is_unsigned<U>::value && std::is_integral<U>::value,
+        bool
+    >::type
+    decode(U& value, rapidjson::Document::GenericValue const& jsonValue)
+    {
+        //writer.UInt(value);
+        value = jsonValue.GetUint();
+        return true;
+    }
+
+    template<typename U>
+    static typename std::enable_if<
+        std::is_signed<U>::value &&  std::is_integral<U>::value,
+        bool
+    >::type
+    decode(U& value, rapidjson::Document::GenericValue const& jsonValue)
+    {
+        //writer.Int(value);
+        value = jsonValue.GetInt();
+        return true;
+    }
+
+    template<typename U>
+    static typename std::enable_if<
+        std::is_floating_point<U>::value,
+        bool
+    >::type
+    decode(U& value, rapidjson::Document::GenericValue const& jsonValue)
+    {
+        value = jsonValue.GetDouble();
+
+        return true;
+    }
+
+    static bool decode(T& value,  rapidjson::Document::ConstValueIterator& itr)
+    {
+        return decode(value, *itr++);
+    }
+};
+
+
+template<int N>
+struct JsonTypeEncoder<char[N], Details::FundamentalType>
+{
+    template<typename Writer>
+    static void encode(const char value[N], Writer& writer)
+    {
+        writer.String(value);
+    }
+};
+
+template<>
+struct JsonTypeEncoder<const char*, Details::FundamentalType>
+{
+    template<typename Writer>
+    static void encode(const char* value, Writer& writer)
+    {
+        writer.String(value);
+    }
+
+
+    static bool decode(const char*& value,  rapidjson::Document::GenericValue const& jsonValue)
+    {
+        value = jsonValue.GetString();
+        return true;
+    }
+
+    static bool decode(const char*& value,  rapidjson::Document::ConstValueIterator& itr)
+    {
+        return decode(value, *itr++);
+    }
+};
+
+
+
+template<typename T>
+struct JsonTypeEncoder<T, Details::ComplexType>
+{
+
+    template<typename Writer>
+    static void encode(T const& t, Writer& writer)
+    {
+
+        writer.StartObject();
+
+        Packer<Writer> packer(writer);
+
+        t.pack(packer);
+
+        writer.EndObject();
+
+    }
+
+    template<typename Reader>
+    static bool decode(T& t, Reader& reader)
+    {
+        Packer<Reader> packer(reader);
+
+        return t.unpack(packer);
+    }
+};
+
+
+
+}
+
+class JsonEncoder
+{
+public:
+
+
+    typedef rapidjson::GenericValue< rapidjson::UTF8<> > ParamsType;
+    typedef rapidjson::GenericValue< rapidjson::UTF8<> > ResultType;
+
+
+    template<typename TMsg, typename Handler>
+    static void encode(TMsg const& msg, Handler& handler)
+    {
+
+        rapidjson::MemoryBuffer buffer;
+
+        rapidjson::Writer<rapidjson::MemoryBuffer> writer(buffer);
+
+        Details::JsonTypeEncoder<TMsg>::encode(msg, writer);
+
+        handler.sendMessage(buffer.GetBuffer(), buffer.GetSize());
+    }
+
+
+    template<typename InputStream, typename Handler>
+    static bool decode(InputStream& is, Handler& handler)
+    {
+
+        rapidjson::Document document;
+
+        document.ParseStream<rapidjson::kParseIterativeFlag, rapidjson::Document::EncodingType, InputStream>(is);
+
+        if(document["jsonrpc"] != "2.0")
+        {
+            // handler.error
+            return false;
+        }
+
+        auto itr = document.FindMember("method");
+        if(itr != document.MemberEnd())
+        {
+            auto& methodRef = itr->value;
+
+            std::string method(methodRef.GetString(), methodRef.GetStringLength());
+
+            itr = document.FindMember("id");
+
+            if(itr != document.MemberEnd())
+            {
+                //request
+                auto& idRef = itr->value;
+
+                itr = document.FindMember("params");
+                if( itr != document.MemberEnd())
+                {
+                    auto& paramsRef = itr->value;
+
+                    handler.exec(method, idRef.GetInt(), paramsRef);
+                }
+                else
+                {
+                    //handler.error(method, id);
+                }
+
+            }
+            else
+            {
+                //notification
+                itr = document.FindMember("params");
+                if( itr != document.MemberEnd())
+                {
+                    auto& paramsRef = itr->value;
+                    handler.exec(method, paramsRef);
+                }
+                else
+                {
+                    //handler.error(method);
+                }
+
+            }
+
+        }
+
+        itr = document.FindMember("result");
+        if(itr != document.MemberEnd())
+        {
+            auto& resultsRef = itr->value;
+
+            itr = document.FindMember("id");
+            if(itr != document.MemberEnd())
+            {
+                auto& idRef = itr->value;                
+                handler.reply(idRef.GetInt(), resultsRef);
+            }
+
+        }
+        return false;
+    }
+
+    template<typename Ch, typename Handler>
+    static bool decode(Ch* buffer, int size, Handler& handler)
+    {
+        rapidjson::MemoryStream inputStream(buffer, size);
+
+        return decode(inputStream, handler);
+    }
+
+    template<typename TParams, typename ...TArgs>
+    static bool decodeType(TParams const& params, std::tuple<TArgs...>& t)
+    {
+        switch(params.GetType()){
+            case rapidjson::kArrayType:
+            {
+                auto itr = params.Begin();
+                return Details::JsonTypeEncoder<std::tuple<TArgs...>>::decode(t, itr);
+            }
+            default:
+                return false;
+        }
+    }
+
+    template<typename TJSonValue, typename T>
+    static bool decodeType(TJSonValue const& jsonValue, T& t)
+    {
+
+
+        switch(jsonValue.GetType()){
+            case rapidjson::kArrayType:
+            case rapidjson::kObjectType:
+            case rapidjson::kStringType:
+            case rapidjson::kNumberType:
+                 return Details::JsonTypeEncoder<T>::decode(t, jsonValue);
+            case rapidjson::kNullType:
+            case rapidjson::kFalseType:
+            case rapidjson::kTrueType:
+            default:
+                return false;
+        }
+    }
+
+};
+
+
+} // namespace RPC
+
+}
+#endif // SHARE2CLOUD_RPC_ENCODER_H
+
