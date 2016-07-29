@@ -19,6 +19,7 @@ Product {
     ]
     files: [
         "include/**/*.h",
+        "rapidjson/include/**/*.h",
         "cpp/**/*.cpp"
     ]
 

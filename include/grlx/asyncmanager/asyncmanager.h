@@ -25,8 +25,8 @@
 /// @author Copyright 2015, David Salvador Pinheiro
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef SHARE2CLOUD_RPC_ASYNCMANAGER_H
-#define SHARE2CLOUD_RPC_ASYNCMANAGER_H
+#ifndef GRLX_RPC_ASYNCMANAGER_H
+#define GRLX_RPC_ASYNCMANAGER_H
 
 #include <memory>
 #include <functional>

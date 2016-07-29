@@ -30,6 +30,7 @@
 #include <type_traits>
 #include <tuple>
 #include <algorithm>
+#include <functional>
 
 
 namespace grlx
@@ -156,7 +157,7 @@ namespace Convert
 template<typename InputIterator, typename OutputIterator>
 void toHex(InputIterator begin, InputIterator end, OutputIterator result, bool lowerCase = false)
 {
-    constexpr char hexDigits[16] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
+    constexpr auto hexDigits = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
 
     for(InputIterator itr = begin; itr != end; ++itr )
     {
@@ -170,7 +171,7 @@ void toHex(InputIterator begin, InputIterator end, OutputIterator result, bool l
 template<typename InputIterator, typename OutputIterator>
 void fromHex(InputIterator begin, InputIterator end, OutputIterator result, bool lowerCase = false)
 {
-    constexpr char decLookupTable[] = {
+    constexpr auto decLookupTable = {
         0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // gap before first hex digit
         0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
         0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
