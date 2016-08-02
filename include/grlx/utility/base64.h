@@ -42,13 +42,11 @@ namespace grlx {
 		//  encode
 		/* ----------------------------------------------------------------- */
 		template <class InIter, class OutIter>
-		inline OutIter encode(InIter first, InIter last, OutIter result) {
-#if defined(__BORLANDC__)
-			typedef char value_type;
-#else
+        inline OutIter encode(InIter first, InIter last, OutIter result)
+        {
+
             //typedef typename InIter::value_type value_type;
             typedef char value_type;
-#endif
                         grlx::basic_base64_encoder<value_type> f;
                         return grlx::convert(first, last, result, f);
 		}
@@ -56,7 +54,8 @@ namespace grlx {
 		/* ----------------------------------------------------------------- */
 		//  encode
 		/* ----------------------------------------------------------------- */
-		inline std::basic_string<char> encode(const std::basic_string<char>& src) {
+        inline std::basic_string<char> encode(const std::basic_string<char>& src)
+        {
 			if (src.empty()) return std::basic_string<char>();
 			std::basic_string<char> dest;
 			std::insert_iterator<std::basic_string<char> > out(dest, dest.begin());
@@ -67,7 +66,8 @@ namespace grlx {
 		/* ----------------------------------------------------------------- */
 		//  encode
 		/* ----------------------------------------------------------------- */
-		inline std::basic_string<char> encode(const char* src) {
+        inline std::basic_string<char> encode(const char* src)
+        {
 			std::basic_string<char> tmp(src);
                         return grlx::base64::encode(tmp);
 		}
@@ -79,7 +79,8 @@ namespace grlx {
 		 *  The function is deprecated. Use encode(InIter, InIter, OutIter)
 		 */
 		/* ----------------------------------------------------------------- */
-		inline std::basic_string<char> encode(const char* src, std::size_t n) {
+        inline std::basic_string<char> encode(const char* src, std::size_t n)
+        {
 			if (n == 0) return std::basic_string<char>();
 			std::basic_string<char> tmp(src, n);
             return grlx::base64::encode(tmp);
@@ -89,13 +90,11 @@ namespace grlx {
 		//  decode
 		/* ----------------------------------------------------------------- */
 		template <class InIter, class OutIter>
-		inline OutIter decode(InIter first, InIter last, OutIter result) {
-#if defined(__BORLANDC__)
-			typedef char value_type;
-#else
+        inline OutIter decode(InIter first, InIter last, OutIter result)
+        {
             //typedef typename InIter::value_type value_type;
             typedef char value_type;
-#endif
+
             grlx::basic_base64_decoder<value_type> f;
             return grlx::convert(first, last, result, f);
 		}
@@ -103,7 +102,8 @@ namespace grlx {
 		/* ----------------------------------------------------------------- */
 		//  decode
 		/* ----------------------------------------------------------------- */
-		inline std::basic_string<char> decode(const std::basic_string<char>& src) {
+        inline std::basic_string<char> decode(const std::basic_string<char>& src)
+        {
 			if (src.empty()) return std::basic_string<char>();
 			std::basic_string<char> dest;
 			std::insert_iterator<std::basic_string<char> > out(dest, dest.begin());
@@ -114,7 +114,8 @@ namespace grlx {
 		/* ----------------------------------------------------------------- */
 		//  decode
 		/* ----------------------------------------------------------------- */
-		inline std::basic_string<char> decode(const char* src) {
+        inline std::basic_string<char> decode(const char* src)
+        {
 			std::basic_string<char> tmp(src);
                         return grlx::base64::decode(tmp);
 		}
@@ -127,7 +128,8 @@ namespace grlx {
 		 *  or decode(const char*).
 		 */
 		/* ----------------------------------------------------------------- */
-		inline std::basic_string<char> decode(const char* src, size_t n) {
+        inline std::basic_string<char> decode(const char* src, size_t n)
+        {
 			if (n == 0) return std::basic_string<char>();
 			std::basic_string<char> tmp(src, n);
                         return grlx::base64::decode(tmp);
