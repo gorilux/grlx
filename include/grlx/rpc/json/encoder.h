@@ -39,9 +39,9 @@
 #include <rapidjson/memorystream.h>
 #include <rapidjson/document.h>
 
-#include "types.h"
-#include "utility.h"
-#include "message.h"
+#include <grlx/rpc/types.h>
+#include <grlx/rpc/utility.h>
+#include <grlx/rpc/message.h>
 
 
 namespace grlx {
@@ -227,13 +227,24 @@ template<typename T>
 struct JsonTypeEncoder<T, Details::FundamentalType>
 {
 
+
+    template<typename Writer>
+    static void encode(uint64_t value, Writer& writer)
+    {
+        writer.Uint64(value);
+    }
+    template<typename Writer>
+    static void encode(int64_t value, Writer& writer)
+    {
+        writer.Int64(value);
+    }
     template<typename U, typename Writer>
     static typename std::enable_if<
         std::is_unsigned<U>::value && std::is_integral<U>::value
     >::type
     encode(U value, Writer& writer)
     {        
-        writer.UInt(value);
+        writer.Uint(value);
     }
 
     template<typename U, typename Writer>
@@ -252,6 +263,18 @@ struct JsonTypeEncoder<T, Details::FundamentalType>
     encode(U value, Writer& writer)
     {
         writer.Double(value);
+    }
+
+    static bool decode(uint64_t& value, rapidjson::Document::GenericValue const& jsonValue)
+    {
+        value = jsonValue.GetUint64();
+        return true;
+    }
+
+    static bool decode(int64_t& value, rapidjson::Document::GenericValue const& jsonValue)
+    {
+        value = jsonValue.GetInt64();
+        return true;
     }
 
     template<typename U>
@@ -505,7 +528,9 @@ public:
 
 
 } // namespace RPC
-
 }
+
+#include "stdtypes_encoder.h"
+
 #endif // SHARE2CLOUD_RPC_ENCODER_H
 

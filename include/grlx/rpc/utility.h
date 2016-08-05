@@ -171,7 +171,7 @@ void toHex(InputIterator begin, InputIterator end, OutputIterator result, bool l
 template<typename InputIterator, typename OutputIterator>
 void fromHex(InputIterator begin, InputIterator end, OutputIterator result, bool lowerCase = false)
 {
-    constexpr auto decLookupTable = {
+    constexpr char decLookupTable[] = {
         0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // gap before first hex digit
         0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
         0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
