@@ -364,9 +364,14 @@ struct JsonTypeEncoder<T, Details::ComplexType>
 
         writer.StartObject();
 
+
+        //writer.StartArray();
+
         Packer<Writer> packer(writer);
 
         t.pack(packer);
+
+        //writer.EndArray();
 
         writer.EndObject();
 

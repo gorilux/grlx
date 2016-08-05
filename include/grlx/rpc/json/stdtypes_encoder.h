@@ -167,8 +167,8 @@ struct JsonTypeEncoder<std::vector<uint8_t>, Details::StdContainerType>
 
     static bool decode(std::vector<uint8_t>& value,  rapidjson::Document::GenericValue const& jsonValue)
     {
-        auto size = jsonValue.GetStringLength();
         auto begin = jsonValue.GetString();
+        auto size = jsonValue.GetStringLength();
         auto end = begin + size;
         base64::decode(begin, end, std::back_inserter(value));
         return true;
