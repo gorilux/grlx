@@ -371,8 +371,8 @@ public:
     typedef rapidjson::GenericValue< rapidjson::UTF8<> > ResultType;
 
 
-    template<typename TMsg, typename Handler>
-    static void encode(TMsg const& msg, Handler& handler)
+    template<typename TMsg, typename ServiceProviderType>
+    static void encode(TMsg const& msg, ServiceProviderType& serviceProvider)
     {
 
         rapidjson::MemoryBuffer buffer;
@@ -381,12 +381,12 @@ public:
 
         Details::JsonTypeEncoder<TMsg>::encode(msg, writer);
 
-        handler.sendMessage(buffer.GetBuffer(), buffer.GetSize());
+        serviceProvider.send(buffer.GetBuffer(), buffer.GetSize());
     }
 
 
-    template<typename InputStream, typename Handler>
-    static bool decode(InputStream& is, Handler& handler)
+    template<typename InputStream, typename ServiceProviderType>
+    static bool decode(InputStream& is, ServiceProviderType& serviceProvider)
     {
 
         rapidjson::Document document;
@@ -418,7 +418,7 @@ public:
                 {
                     auto& paramsRef = itr->value;
 
-                    handler.exec(method, idRef.GetInt(), paramsRef);
+                    serviceProvider.exec(method, idRef.GetInt(), paramsRef);
                 }
                 else
                 {
@@ -433,7 +433,7 @@ public:
                 if( itr != document.MemberEnd())
                 {
                     auto& paramsRef = itr->value;
-                    handler.exec(method, paramsRef);
+                    serviceProvider.exec(method, paramsRef);
                 }
                 else
                 {
@@ -453,7 +453,7 @@ public:
             if(itr != document.MemberEnd())
             {
                 auto& idRef = itr->value;                
-                handler.reply(idRef.GetInt(), resultsRef);
+                serviceProvider.reply(idRef.GetInt(), resultsRef);
             }
 
         }

@@ -37,32 +37,32 @@
 #include <grlx/asyncmanager/asyncmanager.h>
 
 #include "msg_handler.h"
-#include "json_encoder.h"
 #include "utility.h"
 #include "types.h"
+#include "message.h"
 
 namespace grlx {
 
 namespace rpc
 {
 
-template<typename BaseType = Details::DummyBaseClass, typename EncoderType = JsonEncoder>
-class Endpoint : public BaseType, public rpc::MsgHandler
+template<typename EncoderType, typename DerivedType, typename BaseType = Details::DummyBaseClass>
+class ServiceProvider : public BaseType
 {
     struct HandlerBase
     {
-        HandlerBase(Endpoint* self) : _self(self){}
+        HandlerBase(ServiceProvider* self) : _self(self){}
 
         virtual void operator()(const int* id, typename EncoderType::ParamsType const&  params) = 0;
 
-        Endpoint *_self;
+        ServiceProvider *_self;
     };
 
     template<typename TSignature>
     struct Handler : HandlerBase
     {
 
-        Handler(Endpoint* self)
+        Handler(ServiceProvider* self)
             : HandlerBase(self) {}
 
         std::function<TSignature> proc;
@@ -132,11 +132,12 @@ class Endpoint : public BaseType, public rpc::MsgHandler
 public:
 
     template<typename ...TArgs>
-    Endpoint(TArgs&&... args)
+    ServiceProvider(TArgs&&... args)
         : BaseType(std::forward<TArgs>(args)...)
     {
 
     }
+    virtual ~ServiceProvider(){}
 
 
     template<typename R, typename... TArgs>
@@ -220,10 +221,15 @@ public:
         this->add(std::forward<std::string>(name), std::move(handler));
     }
 
+    void send(const char* msg, int size)
+    {
+        static_cast<DerivedType*>(this)->sendMessage(msg, size);
+    }
+
 
 
 protected:
-    void handleMessage(const char* msg, int size)
+    void processMessage(const char* msg, int size)
     {
         EncoderType::decode(msg, size, *this);
     }

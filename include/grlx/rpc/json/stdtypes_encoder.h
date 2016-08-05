@@ -44,7 +44,7 @@
 #include <grlx/utility/base64.h>
 #include <grlx/utility/convert.h>
 
-#include <grlx/rpc/json_encoder.h>
+#include "encoder.h"
 
 
 
