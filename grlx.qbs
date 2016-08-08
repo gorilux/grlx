@@ -5,7 +5,7 @@ Product {
     Depends { name: "cpp" }
 
     cpp.cxxLanguageVersion: "c++14";
-    cpp.cxxStandardLibrary: "libstdc++";
+    //cpp.cxxStandardLibrary: "libstdc++";
 
 
 
@@ -32,7 +32,7 @@ Product {
         ]
         cpp.defines: ["RAPIDJSON_HAS_STDSTRING", "RAPIDJSON_SSE42", "RAPIDJSON_HAS_CXX11_RVALUE_REFS"]
         cpp.cxxLanguageVersion: "c++14";
-        cpp.cxxStandardLibrary: "libstdc++";
+        //cpp.cxxStandardLibrary: "libstdc++";
     }
 
 }

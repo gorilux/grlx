@@ -25,8 +25,8 @@
 /// @author Copyright 2015, David Salvador Pinheiro
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef SHARE2CLOUD_RPC_QTTYPEENCODER_H
-#define SHARE2CLOUD_RPC_QTTYPEENCODER_H
+#ifndef GRLX_RPC_QTTYPEENCODER_H
+#define GRLX_RPC_QTTYPEENCODER_H
 
 #include <QString>
 #include <QVector>

@@ -26,8 +26,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 
-#ifndef SHARE2CLOUD_RPC_STDENCODER_H
-#define SHARE2CLOUD_RPC_STDENCODER_H
+#ifndef GRLX_RPC_STDENCODER_H
+#define GRLX_RPC_STDENCODER_H
 
 #include <type_traits>
 #include <string>
@@ -131,17 +131,17 @@ struct JsonTypeEncoder<std::vector<char>, Details::StdContainerType>
     template<typename Writer>
     static void encode(std::vector<char> const& value, Writer& writer)
     {
-        std::string hexStr(value.size()*2);
-        Convert::toHex(value.begin(), value.end(), std::back_inserter(hexStr));
-        writer.String(hexStr);
+        std::string result;
+        base64::encode(value.begin(), value.end(), std::back_inserter(result));
+        writer.String(result);
     }
 
     static bool decode(std::vector<char>& value,  rapidjson::Document::GenericValue const& jsonValue)
     {
-        auto size = jsonValue.GetStringLength();
         auto begin = jsonValue.GetString();
+        auto size = jsonValue.GetStringLength();
         auto end = begin + size;
-        Convert::fromHex(begin, end, std::back_inserter(value));
+        base64::decode(begin, end, std::back_inserter(value));
         return true;
     }
 

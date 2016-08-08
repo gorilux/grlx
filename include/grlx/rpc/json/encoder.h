@@ -74,8 +74,7 @@ public:
     template<typename...TArgs>
     bool unpack(TArgs&... args)
     {
-        //return decode(t_, args...);
-        return false;
+        return unpackHelper(t_, args...);
     }
 private:
 
@@ -89,6 +88,21 @@ private:
     }
     template<typename Writer>
     static void packHelper(Writer&) { }
+
+
+    template<typename Reader, typename U, typename ...TArgs>
+    static bool unpackHelper(Reader& reader, U& u, TArgs& ...args)
+    {
+        typedef typename std::remove_reference<U>::type V;
+        bool result = JsonTypeEncoder<typename std::remove_cv<V>::type >::decode(u, reader);
+
+        result &= unpackHelper(reader, args...);
+        return result;
+    }
+
+    template<typename Reader>
+    static bool unpackHelper(Reader&) { }
+
 
     T& t_;
 };
@@ -362,27 +376,39 @@ struct JsonTypeEncoder<T, Details::ComplexType>
     static void encode(T const& t, Writer& writer)
     {
 
-        writer.StartObject();
+//        writer.StartObject();
 
+//        writer.Key("Obj");
 
-        //writer.StartArray();
+        writer.StartArray();
 
         Packer<Writer> packer(writer);
 
         t.pack(packer);
 
-        //writer.EndArray();
+        writer.EndArray();
 
-        writer.EndObject();
+//        writer.EndObject();
 
     }
 
-    template<typename Reader>
-    static bool decode(T& t, Reader& reader)
-    {
-        Packer<Reader> packer(reader);
 
-        return t.unpack(packer);
+    static bool decode(T& t,  rapidjson::Document::GenericValue const& jsonValue)
+    {
+        if(jsonValue.GetType() == rapidjson::kArrayType)
+        {
+            auto itr = jsonValue.Begin();
+
+            Packer<rapidjson::Document::ConstValueIterator> packer(itr);
+
+            return t.unpack(packer);
+        }    
+        return false;
+
+    }
+    static bool decode(T& t,  rapidjson::Document::ConstValueIterator& itr)
+    {
+        return decode(t, *itr++);
     }
 };
 
@@ -450,7 +476,7 @@ public:
                 }
                 else
                 {
-                    //handler.error(method, id);
+                    serviceProvider.error(method, idRef.GetInt());
                 }
 
             }
@@ -465,7 +491,7 @@ public:
                 }
                 else
                 {
-                    //handler.error(method);
+                    serviceProvider.error(method);
                 }
 
             }
@@ -488,12 +514,12 @@ public:
         return false;
     }
 
-    template<typename Ch, typename Handler>
-    static bool decode(Ch* buffer, int size, Handler& handler)
+    template<typename Ch, typename ServiceProviderType>
+    static bool decode(Ch* buffer, int size, ServiceProviderType& serviceProvider)
     {
         rapidjson::MemoryStream inputStream(buffer, size);
 
-        return decode(inputStream, handler);
+        return decode(inputStream, serviceProvider);
     }
 
     template<typename TParams, typename ...TArgs>
@@ -517,7 +543,7 @@ public:
 
         switch(jsonValue.GetType()){
             case rapidjson::kArrayType:
-            case rapidjson::kObjectType:
+            case rapidjson::kObjectType:           
             case rapidjson::kStringType:
             case rapidjson::kNumberType:
                  return Details::JsonTypeEncoder<T>::decode(t, jsonValue);

@@ -241,12 +241,12 @@ public:
     {        
         std::lock_guard<std::mutex> lock(_syncMtx);
 
-        _completedAsyncOps.clear();
+        completedAsyncOps.clear();
 
         auto opId = BaseType::createNextOpId();
         auto asyncOp = std::make_shared<AsyncOperation<IDType, TFunc<TResult, TArgs...> > >(std::move(opId), this, std::forward<TFunc<TResult, TArgs...> >(func));
 
-        _outstandingAsyncOps[asyncOp->id()] = std::static_pointer_cast<AsyncOperationBase<IDType>>(asyncOp);
+        outstandingAsyncOps[asyncOp->id()] = std::static_pointer_cast<AsyncOperationBase<IDType>>(asyncOp);
 
         return asyncOp;
     }
@@ -263,9 +263,9 @@ public:
         std::lock_guard<std::mutex> lock(_syncMtx);
 
 
-        auto itr = _outstandingAsyncOps.find(id);
+        auto itr = outstandingAsyncOps.find(id);
 
-        if(itr == _outstandingAsyncOps.end())
+        if(itr == outstandingAsyncOps.end())
             return typename AsyncOperation<IDType,  TFunc<TResult, TArgs...> >::Ptr();
 
         auto asyncOp = itr->second;
@@ -282,15 +282,15 @@ private:
     {
         std::lock_guard<std::mutex> lock(_syncMtx);
 
-        _completedAsyncOps.push_back(asyncOp);
+        completedAsyncOps.push_back(asyncOp);
     }
 
     friend class AsyncOperationBase<IDType>;
 
 private:
     mutable std::mutex _syncMtx;
-    std::unordered_map<IDType, typename AsyncOperationBase<IDType>::Ptr > _outstandingAsyncOps;
-    std::list<typename AsyncOperationBase<IDType>::Ptr > _completedAsyncOps;
+    std::unordered_map<IDType, typename AsyncOperationBase<IDType>::Ptr > outstandingAsyncOps;
+    std::list<typename AsyncOperationBase<IDType>::Ptr > completedAsyncOps;
 
 };
 

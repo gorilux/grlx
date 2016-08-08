@@ -24,8 +24,8 @@
 /// @author David Salvador Pinheiro
 /// @author Copyright 2015, David Salvador Pinheiro
 ////////////////////////////////////////////////////////////////////////////////
-#ifndef GRLX_RPC_ENDPOINT_H
-#define GRLX_RPC_ENDPOINT_H
+#ifndef GRLX_RPC_SERVICEPROVIDER_H
+#define GRLX_RPC_SERVICEPROVIDER_H
 
 #include <type_traits>
 #include <utility>
@@ -36,7 +36,7 @@
 #include <unordered_map>
 #include <grlx/asyncmanager/asyncmanager.h>
 
-#include "msg_handler.h"
+
 #include "utility.h"
 #include "types.h"
 #include "message.h"
@@ -127,7 +127,7 @@ class ServiceProvider : public BaseType
         }
     };
 
-    using Cell = std::shared_ptr< HandlerBase >;
+    using HandlerPtr = std::shared_ptr< HandlerBase >;
 
 public:
 
@@ -276,13 +276,23 @@ private:
 
     }
 
+    void error(const std::string& method, int id)
+    {
+
+    }
+
+    void error(const std::string& method)
+    {
+
+    }
+
 
 private:
     friend EncoderType;
 
     AsyncManager<int> asyncManager;
 
-    std::unordered_map<std::string, Cell> m_dispatchTable;
+    std::unordered_map<std::string, HandlerPtr> m_dispatchTable;
 
 
 
@@ -292,4 +302,4 @@ private:
 
 }
 
-#endif // ENDPOINT_H
+#endif // GRLX_RPC_SERVICEPROVIDER_H
