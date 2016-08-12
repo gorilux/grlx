@@ -36,6 +36,7 @@
 #include <map>
 #include <set>
 #include <queue>
+#include <functional>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -45,7 +46,9 @@ namespace grlx {
 namespace rpc{
 
 
-typedef std::vector<uint8_t> ByteArray;
+using ByteArray = std::vector<uint8_t>;
+
+using MsgHandler         = std::function<void(const uint8_t*, size_t size)>;
 
 struct MsgType
 {

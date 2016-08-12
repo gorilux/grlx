@@ -36,7 +36,7 @@
 #include <unordered_map>
 #include <grlx/asyncmanager/asyncmanager.h>
 
-#include "endpoint.h"
+#include "connection.h"
 #include "utility.h"
 #include "types.h"
 #include "message.h"
@@ -46,8 +46,8 @@ namespace grlx {
 namespace rpc
 {
 
-template<typename EncoderType, typename DerivedType, typename BaseType = Details::DummyBaseClass>
-class ServiceProvider : public Endpoint<BaseType>
+template<typename EncoderType, typename TransportType, typename BaseType = Details::DummyBaseClass>
+class ServiceProvider : public Connection<TransportType>
 {
     struct HandlerBase
     {
@@ -133,7 +133,7 @@ public:
 
     template<typename ...TArgs>
     ServiceProvider(TArgs&&... args)
-        : Endpoint<BaseType>(std::forward<TArgs>(args)...)
+        : Connection<TransportType>(std::forward<TArgs>(args)...)
     {
 
     }
@@ -221,21 +221,19 @@ public:
         this->add(std::forward<std::string>(name), std::move(handler));
     }
 
-    void send(const char* msg, int size)
-    {
-        static_cast<DerivedType*>(this)->sendMessage(msg, size);
-    }
+
+private:
+
+    friend EncoderType;
 
 
-
-protected:
     void processMessage(const char* msg, int size)
     {
         EncoderType::decode(msg, size, *this);
     }
 
 
-private:
+
 
     template<typename Handler>
     void add(std::string&& name, std::shared_ptr<Handler>&& handler)
