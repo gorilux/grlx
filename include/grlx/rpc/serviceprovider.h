@@ -36,7 +36,7 @@
 #include <unordered_map>
 #include <grlx/asyncmanager/asyncmanager.h>
 
-
+#include "endpoint.h"
 #include "utility.h"
 #include "types.h"
 #include "message.h"
@@ -47,7 +47,7 @@ namespace rpc
 {
 
 template<typename EncoderType, typename DerivedType, typename BaseType = Details::DummyBaseClass>
-class ServiceProvider : public BaseType
+class ServiceProvider : public Endpoint<BaseType>
 {
     struct HandlerBase
     {
@@ -133,7 +133,7 @@ public:
 
     template<typename ...TArgs>
     ServiceProvider(TArgs&&... args)
-        : BaseType(std::forward<TArgs>(args)...)
+        : Endpoint<BaseType>(std::forward<TArgs>(args)...)
     {
 
     }
