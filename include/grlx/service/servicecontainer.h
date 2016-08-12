@@ -138,7 +138,7 @@ public:
         this->AddService(typeId<T>(), serviceInfo);
     }
     template<typename T, typename U>
-    void AddService(const std::shared_ptr<U> serviceInstance)
+    void AddService(const std::shared_ptr<U>& serviceInstance)
     {
         std::shared_ptr<ServiceInfoBase> serviceInfo( new InstanceHolderServiceInfo<T>( serviceInstance )  );
 
