@@ -32,8 +32,10 @@
 namespace grlx {
 namespace rpc {
 
-template<typename TransportType>
-class Connection : public TransportType::Connection
+
+
+template<typename ServiceProvider, typename TransportType >
+class Connection : public TransportType::template ConnectionImpl< Connection<ServiceProvider, TransportType> >
 {
 public:
     Connection(){}

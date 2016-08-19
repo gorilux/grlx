@@ -46,8 +46,8 @@ namespace grlx {
 namespace rpc
 {
 
-template<typename EncoderType, typename TransportType, typename BaseType = Details::DummyBaseClass>
-class ServiceProvider : public Connection<TransportType>
+template<typename EncoderType, typename BaseType = Details::DummyBaseClass>
+class ServiceProvider : public BaseType
 {
     struct HandlerBase
     {
@@ -129,13 +129,18 @@ class ServiceProvider : public Connection<TransportType>
 
     using HandlerPtr = std::shared_ptr< HandlerBase >;
 
+
+
 public:
 
-    template<typename ...TArgs>
-    ServiceProvider(TArgs&&... args)
-        : Connection<TransportType>(std::forward<TArgs>(args)...)
-    {
+    using DataHandler = std::function<int(const char*, int)>;
 
+    template<typename ChannelType, typename ...TArgs>
+    ServiceProvider(ChannelType* channel, TArgs&&... args)
+        : BaseType(std::forward<TArgs>(args)...),
+          sendMsg(std::bind(&ChannelType::sendMsg, channel, std::placeholders::_1, std::placeholders::_2))
+    {        
+        channel->registerMsgHandler(std::bind(&ServiceProvider::handleMessage, this, std::placeholders::_1, std::placeholders::_2));
     }
     virtual ~ServiceProvider(){}
 
@@ -219,21 +224,24 @@ public:
         std::swap(handler->proc, func);
 
         this->add(std::forward<std::string>(name), std::move(handler));
-    }
+    }    
+
 
 
 private:
 
     friend EncoderType;
 
-
-    void processMessage(const char* msg, int size)
+    int handleMessage(const char* msg, int size)
     {
         EncoderType::decode(msg, size, *this);
+        return 0;
     }
 
-
-
+    void send(const char* msg, int size)
+    {
+        sendMsg(msg, size);
+    }
 
     template<typename Handler>
     void add(std::string&& name, std::shared_ptr<Handler>&& handler)
@@ -287,7 +295,7 @@ private:
 
 private:
     friend EncoderType;
-
+    DataHandler sendMsg;
     AsyncManager<int> asyncManager;
 
     std::unordered_map<std::string, HandlerPtr> m_dispatchTable;
@@ -296,8 +304,8 @@ private:
 
 };
 
-}
 
+}
 }
 
 #endif // GRLX_RPC_SERVICEPROVIDER_H
