@@ -34,30 +34,39 @@
 namespace grlx {
 namespace rpc {
 
-template<typename EncoderType, typename TransportType>
-class Server : public TransportType::template Server< Server<EncoderType, TransportType> >
+template<typename ServiceProvider, typename TransportType >
+class Server : public TransportType::template ServerImpl< Server<ServiceProvider, TransportType> >
 {
-    using BaseType = typename TransportType::template Server< Server<EncoderType, TransportType> >;
 
-    friend BaseType;
+    using BaseType = typename TransportType::template ServerImpl< Server<ServiceProvider, TransportType> >;
+    using ConnectionType = typename TransportType::Connection;
+
 public:
-
-    using ServiceProvider = ServiceProvider<EncoderType, TransportType>;
 
     template<typename ...TArgs>
     Server(TArgs&&... args)
         : BaseType(std::forward<TArgs>(args)...)
     {
-
+        createServiceDelegate = [] (ConnectionType* connection)
+        {
+            return std::make_shared<ServiceProvider>(connection);
+        };
     }
 
 private:
-    template<typename T>
-    bool accept(T newConnection)
+    friend BaseType;
+
+    template<typename ConnectionType>
+    bool accept(std::shared_ptr<ConnectionType>&& newConnection)
     {
+
+
 
         return true;
     }
+
+
+    std::function< std::shared_ptr<ServiceProvider>(ConnectionType*) > createServiceDelegate;
 
 
 
