@@ -28,6 +28,7 @@
 #define GRLX_RPC_SERVER_H
 
 #include <memory>
+#include <unordered_map>
 
 #include "connection.h"
 #include "serviceprovider.h"
@@ -58,17 +59,21 @@ public:
 private:
     friend BaseType;
 
-    template<typename ConnectionType>
     bool accept(std::shared_ptr<ConnectionType>&& newConnection)
     {
 
+        auto newService = createServiceDelegate( newConnection.get() );
 
+        activeServices.insert(std::make_pair( newConnection, newService));
 
         return true;
     }
 
 
+
+private:
     std::function< std::shared_ptr<ServiceProvider>(ConnectionType*) > createServiceDelegate;
+    std::unordered_map< std::shared_ptr<ConnectionType>, std::shared_ptr<ServiceProvider > > activeServices;
 
 
 

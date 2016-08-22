@@ -31,6 +31,8 @@
 namespace grlx {
 namespace rpc {
 
+
+template<typename ServiceProvider, typename TransportType >
 class Client
 {
 public:
