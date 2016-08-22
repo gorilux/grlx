@@ -29,6 +29,7 @@
 
 #include <memory>
 
+#include "connection.h"
 #include "serviceprovider.h"
 
 namespace grlx {
@@ -39,9 +40,10 @@ class Server : public TransportType::template ServerImpl< Server<ServiceProvider
 {
 
     using BaseType = typename TransportType::template ServerImpl< Server<ServiceProvider, TransportType> >;
-    using ConnectionType = typename TransportType::Connection;
 
 public:
+    using Type = Server;
+    using ConnectionType = typename Connection<ServiceProvider, TransportType>::Type;
 
     template<typename ...TArgs>
     Server(TArgs&&... args)

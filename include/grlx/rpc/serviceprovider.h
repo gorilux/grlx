@@ -135,12 +135,12 @@ public:
 
     using DataHandler = std::function<int(const char*, int)>;
 
-    template<typename ChannelType, typename ...TArgs>
-    ServiceProvider(ChannelType* channel, TArgs&&... args)
-        : BaseType(std::forward<TArgs>(args)...),
-          sendMsg(std::bind(&ChannelType::sendMsg, channel, std::placeholders::_1, std::placeholders::_2))
-    {        
-        channel->registerMsgHandler(std::bind(&ServiceProvider::handleMessage, this, std::placeholders::_1, std::placeholders::_2));
+    template<typename TConnectionType, typename ...TArgs>
+    ServiceProvider(TConnectionType* connection, TArgs&&... args)
+        : BaseType(std::forward<TArgs>(args)...)
+    {
+        sendMsg = std::bind(&TConnectionType::sendMsg, connection, std::placeholders::_1, std::placeholders::_2);
+        connection->setMsgHandler(std::bind(&ServiceProvider::handleMessage, this, std::placeholders::_1, std::placeholders::_2));
     }
     virtual ~ServiceProvider(){}
 
@@ -295,7 +295,7 @@ private:
 
 private:
     friend EncoderType;
-    DataHandler sendMsg;
+    MsgHandler sendMsg;
     AsyncManager<int> asyncManager;
 
     std::unordered_map<std::string, HandlerPtr> m_dispatchTable;

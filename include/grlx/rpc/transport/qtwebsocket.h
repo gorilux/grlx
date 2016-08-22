@@ -4,6 +4,7 @@
 #include <memory>
 
 #include <QObject>
+#include <QByteArray>
 #include <QWebSocket>
 #include <QWebSocketServer>
 
@@ -18,7 +19,7 @@ namespace Qt {
 struct WebSocket
 {
 
-    template<typename TDerived>
+    template<typename TConnection>
     class ConnectionImpl
     {
     public:
@@ -26,6 +27,11 @@ struct WebSocket
             : webSocket(webSocket)
         {
             hookEvents(webSocket);
+        }
+
+        int sendMsg(const char* data, int size)
+        {
+            return webSocket->sendBinaryMessage(QByteArray(data,size));
         }
 
     private:
@@ -40,7 +46,7 @@ struct WebSocket
 
             QObject::connect(webSocket, &QWebSocket::binaryMessageReceived, [&](const QByteArray& msg)
             {
-
+                static_cast<TConnection*>(this)->msgHandler(msg.data(), msg.size());
             });
 
 
@@ -82,7 +88,7 @@ struct WebSocket
         {
             QWebSocket* incomingConnection = nextPendingConnection();
 
-            if(!static_cast<TServer*>(this)->accept(std::make_shared< Connection >(incomingConnection)))
+            if(!static_cast<TServer*>(this)->accept(std::make_shared< typename TServer::ConnectionType >(incomingConnection)))
             {
                 incomingConnection->close();
                 incomingConnection->deleteLater();

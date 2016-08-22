@@ -37,10 +37,18 @@ namespace rpc {
 template<typename ServiceProvider, typename TransportType >
 class Connection : public TransportType::template ConnectionImpl< Connection<ServiceProvider, TransportType> >
 {
-public:
-    Connection(){}
 
-    void send(const char* data, size_t size){}
+    using BaseType = typename TransportType::template ConnectionImpl< Connection<ServiceProvider, TransportType> >;
+
+public:
+
+    using Type = Connection;
+
+
+    template<typename ...TArgs>
+    Connection(TArgs&&... args)
+        : BaseType(std::forward<TArgs>(args)...){}
+
 
     void setMsgHandler( MsgHandler handler)
     {
@@ -48,7 +56,7 @@ public:
     }
 
 private:
-
+    friend BaseType;
     MsgHandler msgHandler;
 
 

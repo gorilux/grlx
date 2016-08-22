@@ -48,7 +48,7 @@ namespace rpc{
 
 using ByteArray = std::vector<uint8_t>;
 
-using MsgHandler         = std::function<void(const uint8_t*, size_t size)>;
+using MsgHandler         = std::function<int(const char*, int size)>;
 
 struct MsgType
 {
