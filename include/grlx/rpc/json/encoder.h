@@ -101,7 +101,7 @@ private:
     }
 
     template<typename Reader>
-    static bool unpackHelper(Reader&) { }
+    static bool unpackHelper(Reader&) { return true; }
 
 
     T& t_;

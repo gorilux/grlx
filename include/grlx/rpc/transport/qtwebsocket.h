@@ -77,16 +77,21 @@ struct WebSocket
 
 
     template<typename TServer>
-    class SocketWrapper
+    class SocketWrapper : public std::enable_shared_from_this< SocketWrapper<TServer> >
     {
     public:
 
         using Type = SocketWrapper;
 
-        SocketWrapper(QWebSocket* webSocket)
-            : webSocket(webSocket)
+        SocketWrapper(QWebSocket* webSocket, TServer* server)
+            : webSocket(webSocket),
+              server( server )
         {
             hookEvents(webSocket);
+        }
+        ~SocketWrapper()
+        {
+            webSocket->deleteLater();
         }
 
         int sendMsg(const char* data, int size)
@@ -121,12 +126,21 @@ struct WebSocket
             QObject::connect(webSocket, &QWebSocket::disconnected, [&]()
             {
                 //heartbeatTimer.stop();
+
+
+
             });
             //QObject::connect(webSocket, &QWebSocket::pong, this, );
             //QObject::connect(webSocket, &QWebSocket::sslErrors, this, );
         }
 
+        void handleDisconnected()
+        {
+            server->handleDisconnected();
+        }
+
         QWebSocket* webSocket;
+        TServer* server;
     };
 
     template<typename TServer>
@@ -140,31 +154,36 @@ struct WebSocket
             : QWebSocketServer(serverName,secureMode, parent)
         {
             QObject::connect(this, &QWebSocketServer::newConnection, this, &ServerImpl::handleNewConnection);
-            QObject::connect(this, &QWebSocketServer::closed, this, &ServerImpl::handleClosed);
+            QObject::connect(this, &QWebSocketServer::closed, [&]()
+            {
+                static_cast<typename TServer::Type*>(this)->handleClosed();
+            });
             //QObject::connect(this, &QWebSocketServer::acceptError, this, &ServerImpl::handleNewConnection);
 //            QObject::connect(this, &QWebSocketServer::originAuthenticationRequired, this, &ServerImpl::handleNewConnection);
 //            QObject::connect(this, &QWebSocketServer::peerVerifyError, this, &ServerImpl::handleNewConnection);
 //            QObject::connect(this, &QWebSocketServer::sslErrors, this, &ServerImpl::handleNewConnection);
-
-
-
         }
+
+        template<typename T>
+        void handleDisconnected(std::shared_ptr<T> connection)
+        {
+            static_cast<typename TServer::Type*>(this)->disconnected( connection );
+        }
+
+
     private:
+
         void handleNewConnection()
         {
             QWebSocket* incomingConnection = nextPendingConnection();
 
-            auto connection = std::make_shared< typename TServer::ConnectionType >(incomingConnection);
+            auto connection = std::make_shared< typename TServer::ConnectionType >(incomingConnection, static_cast<TServer*>( this ) );
 
-            if(!static_cast<TServer*>(this)->accept(connection))
+            if(!static_cast<TServer*>(this)->accept(std::move(connection)))
             {
                 incomingConnection->close();
                 incomingConnection->deleteLater();
             }
-        }
-        void handleClosed()
-        {
-
         }
 
     };

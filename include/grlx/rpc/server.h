@@ -56,8 +56,21 @@ public:
         };
     }
 
+
 private:
     friend BaseType;
+    friend ConnectionType;
+
+
+    void disconnected(std::shared_ptr<ConnectionType> const& connection)
+    {
+        auto serviceItr = activeServices.find( connection );
+        if(serviceItr != activeServices.end())
+        {
+            //serviceItr->second->cancel();
+            activeServices.erase(serviceItr);
+        }
+    }
 
     bool accept(std::shared_ptr<ConnectionType>&& newConnection)
     {
@@ -69,6 +82,11 @@ private:
         activeServices.insert(std::make_pair( newConnection, newService));
 
         return true;
+    }
+
+    void handleClosed()
+    {
+        activeServices.clear();
     }
 
 
