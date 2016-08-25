@@ -62,6 +62,15 @@ struct MsgType
     };
 };
 
+struct ConnectionRole
+{
+   enum Type
+   {
+        Server,
+        Client
+   };
+};
+
 
 namespace Details{
 

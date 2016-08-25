@@ -8,6 +8,10 @@
 #include <QWebSocket>
 #include <QWebSocketServer>
 
+#include <QDebug>
+
+
+#include "../types.h"
 
 
 
@@ -19,19 +23,23 @@ namespace Qt {
 struct WebSocket
 {
 
-    template<typename TConnection>
-    class ConnectionImpl
-    {
+
+    template<typename TClient>
+    class ClientImpl : public QWebSocket {
     public:
-        ConnectionImpl(QWebSocket* webSocket)
-            : webSocket(webSocket)
+        using Type = ClientImpl;
+
+        ClientImpl(const QString &origin = QString(), QWebSocketProtocol::Version version = QWebSocketProtocol::VersionLatest, QObject* parent = nullptr)
+            : QWebSocket(origin,version, parent)
         {
-            hookEvents(webSocket);
+            hookEvents(this);
         }
 
         int sendMsg(const char* data, int size)
         {
-            return webSocket->sendBinaryMessage(QByteArray(data,size));
+            QByteArray msg(data,size);
+            qDebug() << "CLT>:" << msg;
+            return this->sendBinaryMessage(msg);
         }
 
     private:
@@ -46,13 +54,68 @@ struct WebSocket
 
             QObject::connect(webSocket, &QWebSocket::binaryMessageReceived, [&](const QByteArray& msg)
             {
-                static_cast<TConnection*>(this)->msgHandler(msg.data(), msg.size());
+                qDebug() << "CLT<:" << msg;
+                static_cast<typename TClient::ConnectionType*>(this)->msgHandler(msg.data(), msg.size());
             });
 
 
             QObject::connect(webSocket, &QWebSocket::textMessageReceived, [&] (const QString& msg)
             {
+                qDebug() << "SRV:<" << msg;
+            });
 
+            QObject::connect(webSocket, &QWebSocket::disconnected, [&]()
+            {
+                //heartbeatTimer.stop();
+            });
+            //QObject::connect(webSocket, &QWebSocket::pong, this, );
+            //QObject::connect(webSocket, &QWebSocket::sslErrors, this, );
+        }
+
+
+    };
+
+
+    template<typename TServer>
+    class SocketWrapper
+    {
+    public:
+
+        using Type = SocketWrapper;
+
+        SocketWrapper(QWebSocket* webSocket)
+            : webSocket(webSocket)
+        {
+            hookEvents(webSocket);
+        }
+
+        int sendMsg(const char* data, int size)
+        {
+            QByteArray msg(data,size);
+            qDebug() << "SRV:>" << msg;
+            return webSocket->sendBinaryMessage(msg);
+        }
+
+    private:
+
+        void hookEvents(QWebSocket* webSocket)
+        {
+            QObject::connect(webSocket, &QWebSocket::connected, [&]()
+            {
+                //heartbeatTimer.start();
+            });
+
+
+            QObject::connect(webSocket, &QWebSocket::binaryMessageReceived, [&](const QByteArray& msg)
+            {
+                qDebug() << "SRV:<" << msg;
+                static_cast<typename TServer::ConnectionType*>(this)->msgHandler(msg.data(), msg.size());
+            });
+
+
+            QObject::connect(webSocket, &QWebSocket::textMessageReceived, [&] (const QString& msg)
+            {
+                qDebug() << "SRV:<" << msg;
             });
 
             QObject::connect(webSocket, &QWebSocket::disconnected, [&]()
@@ -69,6 +132,9 @@ struct WebSocket
     template<typename TServer>
     class ServerImpl : public QWebSocketServer {
     public:
+
+        using Type = ServerImpl;
+        using ConnectionType = typename SocketWrapper<TServer>::Type;
 
         ServerImpl(const QString &serverName, QWebSocketServer::SslMode secureMode, QObject* parent = 0)
             : QWebSocketServer(serverName,secureMode, parent)
@@ -88,7 +154,9 @@ struct WebSocket
         {
             QWebSocket* incomingConnection = nextPendingConnection();
 
-            if(!static_cast<TServer*>(this)->accept(std::make_shared< typename TServer::ConnectionType >(incomingConnection)))
+            auto connection = std::make_shared< typename TServer::ConnectionType >(incomingConnection);
+
+            if(!static_cast<TServer*>(this)->accept(connection))
             {
                 incomingConnection->close();
                 incomingConnection->deleteLater();

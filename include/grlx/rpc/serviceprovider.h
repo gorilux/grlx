@@ -135,15 +135,21 @@ public:
 
     using DataHandler = std::function<int(const char*, int)>;
 
-    template<typename TConnectionType, typename ...TArgs>
-    ServiceProvider(TConnectionType* connection, TArgs&&... args)
+    template<typename ...TArgs>
+    ServiceProvider( TArgs&&... args)
         : BaseType(std::forward<TArgs>(args)...)
     {
-        sendMsg = std::bind(&TConnectionType::sendMsg, connection, std::placeholders::_1, std::placeholders::_2);
-        connection->setMsgHandler(std::bind(&ServiceProvider::handleMessage, this, std::placeholders::_1, std::placeholders::_2));
+
     }
     virtual ~ServiceProvider(){}
 
+
+    template<typename TConnectionType>
+    void bind(TConnectionType* connection)
+    {
+        sendMsgDelegate = std::bind(&TConnectionType::sendMsg, connection, std::placeholders::_1, std::placeholders::_2);
+        connection->setMsgHandler(std::bind(&ServiceProvider::handleMessage, this, std::placeholders::_1, std::placeholders::_2));
+    }
 
     template<typename R, typename... TArgs>
     std::future<R> invoke(std::string&& procName, TArgs&&... args )
@@ -240,7 +246,7 @@ private:
 
     void send(const char* msg, int size)
     {
-        sendMsg(msg, size);
+        sendMsgDelegate(msg, size);
     }
 
     template<typename Handler>
@@ -295,7 +301,7 @@ private:
 
 private:
     friend EncoderType;
-    MsgHandler sendMsg;
+    MsgHandler sendMsgDelegate;
     AsyncManager<int> asyncManager;
 
     std::unordered_map<std::string, HandlerPtr> m_dispatchTable;

@@ -40,19 +40,19 @@ template<typename ServiceProvider, typename TransportType >
 class Server : public TransportType::template ServerImpl< Server<ServiceProvider, TransportType> >
 {
 
-    using BaseType = typename TransportType::template ServerImpl< Server<ServiceProvider, TransportType> >;
+    using BaseType = typename TransportType::template ServerImpl< Server<ServiceProvider, TransportType> >::Type;
 
 public:
     using Type = Server;
-    using ConnectionType = typename Connection<ServiceProvider, TransportType>::Type;
+    using ConnectionType = typename Connection<typename BaseType::ConnectionType>::Type;
 
     template<typename ...TArgs>
     Server(TArgs&&... args)
         : BaseType(std::forward<TArgs>(args)...)
     {
-        createServiceDelegate = [] (ConnectionType* connection)
+        createServiceDelegate = [] ()
         {
-            return std::make_shared<ServiceProvider>(connection);
+            return std::make_shared<ServiceProvider>();
         };
     }
 
@@ -62,7 +62,9 @@ private:
     bool accept(std::shared_ptr<ConnectionType>&& newConnection)
     {
 
-        auto newService = createServiceDelegate( newConnection.get() );
+        auto newService = createServiceDelegate();
+
+        newService->bind(newConnection.get());
 
         activeServices.insert(std::make_pair( newConnection, newService));
 
@@ -72,7 +74,7 @@ private:
 
 
 private:
-    std::function< std::shared_ptr<ServiceProvider>(ConnectionType*) > createServiceDelegate;
+    std::function< std::shared_ptr< ServiceProvider>() > createServiceDelegate;
     std::unordered_map< std::shared_ptr<ConnectionType>, std::shared_ptr<ServiceProvider > > activeServices;
 
 

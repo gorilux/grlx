@@ -27,16 +27,34 @@
 #ifndef GRLX_RPC_CLIENT_H
 #define GRLX_RPC_CLIENT_H
 
+#include <memory>
+
+#include "connection.h"
 
 namespace grlx {
 namespace rpc {
 
 
 template<typename ServiceProvider, typename TransportType >
-class Client
+class Client : public ServiceProvider, public Connection< typename TransportType::template ClientImpl< Client<ServiceProvider, TransportType> > >::Type
 {
+    using BaseType = typename Connection< typename TransportType::template ClientImpl< Client<ServiceProvider, TransportType> > >::Type;
+
 public:
-    Client();
+    using Type = Client;
+
+    using ConnectionType = BaseType;
+
+
+    template<typename ...TArgs>
+    Client(TArgs&&... args)
+        : BaseType(std::forward<TArgs>(args)...)
+    {
+        this->bind(this);
+    }
+private:
+
+
 };
 
 }
