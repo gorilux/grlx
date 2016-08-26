@@ -48,12 +48,21 @@ public:
 
     template<typename ...TArgs>
     Server(TArgs&&... args)
-        : BaseType(std::forward<TArgs>(args)...)
+        : BaseType(std::forward<TArgs>(args)...),
+          disposing(false)
     {
         createServiceDelegate = [] ()
         {
             return std::make_shared<ServiceProvider>();
         };
+    }
+
+    ~Server()
+    {
+        disposing = true;
+
+        dispose();
+
     }
 
 
@@ -64,6 +73,9 @@ private:
 
     void disconnected(std::shared_ptr<ConnectionType> const& connection)
     {
+        if(disposing)
+            return;
+
         auto serviceItr = activeServices.find( connection );
         if(serviceItr != activeServices.end())
         {
@@ -71,8 +83,15 @@ private:
             activeServices.erase(serviceItr);
         }
     }
+    void dispose()
+    {
+        for(auto service: activeServices)
+        {
+            service.first->close();
+        }
+    }
 
-    bool accept(std::shared_ptr<ConnectionType>&& newConnection)
+    bool accept(std::shared_ptr<ConnectionType> const& newConnection)
     {
 
         auto newService = createServiceDelegate();
@@ -94,6 +113,7 @@ private:
 private:
     std::function< std::shared_ptr< ServiceProvider>() > createServiceDelegate;
     std::unordered_map< std::shared_ptr<ConnectionType>, std::shared_ptr<ServiceProvider > > activeServices;
+    bool disposing;
 
 
 

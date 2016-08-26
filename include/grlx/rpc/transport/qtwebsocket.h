@@ -77,7 +77,7 @@ struct WebSocket
 
 
     template<typename TServer>
-    class SocketWrapper : public std::enable_shared_from_this< SocketWrapper<TServer> >
+    class SocketWrapper
     {
     public:
 
@@ -99,6 +99,10 @@ struct WebSocket
             QByteArray msg(data,size);
             qDebug() << "SRV:>" << msg;
             return webSocket->sendBinaryMessage(msg);
+        }
+        void close()
+        {
+            webSocket->close();
         }
 
     private:
@@ -125,7 +129,7 @@ struct WebSocket
 
             QObject::connect(webSocket, &QWebSocket::disconnected, [&]()
             {
-                //heartbeatTimer.stop();
+                //heartbeatTimer.stop();                
 
 
 
@@ -134,10 +138,6 @@ struct WebSocket
             //QObject::connect(webSocket, &QWebSocket::sslErrors, this, );
         }
 
-        void handleDisconnected()
-        {
-            server->handleDisconnected();
-        }
 
         QWebSocket* webSocket;
         TServer* server;
@@ -164,11 +164,7 @@ struct WebSocket
 //            QObject::connect(this, &QWebSocketServer::sslErrors, this, &ServerImpl::handleNewConnection);
         }
 
-        template<typename T>
-        void handleDisconnected(std::shared_ptr<T> connection)
-        {
-            static_cast<typename TServer::Type*>(this)->disconnected( connection );
-        }
+
 
 
     private:
@@ -179,11 +175,22 @@ struct WebSocket
 
             auto connection = std::make_shared< typename TServer::ConnectionType >(incomingConnection, static_cast<TServer*>( this ) );
 
-            if(!static_cast<TServer*>(this)->accept(std::move(connection)))
+            QObject::connect(incomingConnection, &QWebSocket::disconnected, [connection, this]()
+            {
+                static_cast<typename TServer::Type*>(this)->disconnected(connection);
+            });
+
+            if(!static_cast<TServer*>(this)->accept(connection))
             {
                 incomingConnection->close();
                 incomingConnection->deleteLater();
             }
+        }
+
+        template<typename T>
+        void handleDisconnected(std::shared_ptr<T> connection)
+        {
+
         }
 
     };

@@ -252,14 +252,14 @@ private:
     template<typename Handler>
     void add(std::string&& name, std::shared_ptr<Handler>&& handler)
     {       
-       m_dispatchTable.emplace(std::forward<std::string>(name), handler);
+       dispatchTable.emplace(std::forward<std::string>(name), handler);
     }
 
     template<typename TParams>
     void exec(const std::string& method, int id, TParams const& params)
     {
-        auto itr = m_dispatchTable.find(method);
-        if(itr != m_dispatchTable.end())
+        auto itr = dispatchTable.find(method);
+        if(itr != dispatchTable.end())
         {
             auto& func= *(itr->second);
             func(&id, params);
@@ -269,8 +269,8 @@ private:
     template<typename TParams>
     void exec(const std::string& method, TParams const& params)
     {
-        auto itr = m_dispatchTable.find(method);
-        if(itr != m_dispatchTable.end())
+        auto itr = dispatchTable.find(method);
+        if(itr != dispatchTable.end())
         {
             auto& func = *(itr->second);
             func(nullptr, params);
@@ -304,7 +304,7 @@ private:
     MsgHandler sendMsgDelegate;
     AsyncManager<int> asyncManager;
 
-    std::unordered_map<std::string, HandlerPtr> m_dispatchTable;
+    std::unordered_map<std::string, HandlerPtr> dispatchTable;
 
 
 
