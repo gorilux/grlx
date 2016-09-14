@@ -75,19 +75,19 @@ class ServiceProvider : public BaseType
 
             EncoderType::decodeType(params, args);
 
-            return apply(func, args);
+            return call(func, args);
         }
 
         template<typename R, typename ...FArgs, typename...TArgs, int ...Indexes>
-        R applyHelper(std::function<R(FArgs...)>& func, IndexTuple< Indexes... > ,std::tuple<TArgs...>&& args)
+        R callHelper(std::function<R(FArgs...)>& func, IndexTuple< Indexes... > ,std::tuple<TArgs...>&& args)
         {
             return func(std::forward<TArgs>(std::get<Indexes>(args))...);
         }
 
         template<typename R, typename ...FArgs, typename...TArgs>
-        R apply(std::function<R(FArgs...)>& func, std::tuple<TArgs...>& args)
+        R call(std::function<R(FArgs...)>& func, std::tuple<TArgs...>& args)
         {
-            return applyHelper(func, typename MakeIndexes<FArgs...>::type(), std::forward<std::tuple<TArgs...>>(args));
+            return callHelper(func, typename MakeIndexes<FArgs...>::type(), std::forward<std::tuple<TArgs...>>(args));
         }
 
         template<typename TParams, typename ...ArgsT>
