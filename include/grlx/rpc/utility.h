@@ -40,26 +40,26 @@ namespace grlx
 namespace rpc
 {
 
-template<int...> struct IndexTuple{};
+//template<int...> struct IndexTuple{};
 
-template<int I, typename IndexTuple, typename... Types>
-struct MakeIndexesImpl;
+//template<int I, typename IndexTuple, typename... Types>
+//struct MakeIndexesImpl;
 
-template<int I, int... Indexes, typename T, typename ... Types>
-struct MakeIndexesImpl<I, IndexTuple<Indexes...>, T, Types...>
-{
-    typedef typename MakeIndexesImpl<I + 1, IndexTuple<Indexes..., I>, Types...>::type type;
-};
+//template<int I, int... Indexes, typename T, typename ... Types>
+//struct MakeIndexesImpl<I, IndexTuple<Indexes...>, T, Types...>
+//{
+//    typedef typename MakeIndexesImpl<I + 1, IndexTuple<Indexes..., I>, Types...>::type type;
+//};
 
-template<int I, int... Indexes>
-struct MakeIndexesImpl<I, IndexTuple<Indexes...> >
-{
-    typedef IndexTuple<Indexes...> type;
-};
+//template<int I, int... Indexes>
+//struct MakeIndexesImpl<I, IndexTuple<Indexes...> >
+//{
+//    typedef IndexTuple<Indexes...> type;
+//};
 
-template<typename ... Types>
-struct MakeIndexes : MakeIndexesImpl<0, IndexTuple<>, Types...>
-{};
+//template<typename ... Types>
+//struct MakeIndexes : MakeIndexesImpl<0, IndexTuple<>, Types...>
+//{};
 
 
 template<template<typename> class EncoderType,  typename TupleT, int Size = std::tuple_size<TupleT>::value >
