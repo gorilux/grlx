@@ -26,7 +26,7 @@
 #include <string>
 #include <functional>
 #include <memory>
-#include <map>
+#include <unordered_map>
 
 #include <grlx/tmpl/typeid.h>
 
@@ -198,7 +198,7 @@ private:
 
 private:
 
-    typedef std::map<grlx::TypeId, std::shared_ptr<ServiceInfoBase> > TypeInfoMap;
+    typedef std::unordered_map<grlx::TypeId, std::shared_ptr<ServiceInfoBase> > TypeInfoMap;
     ServiceContainerPtr parent;
 
     mutable TypeInfoMap objectMap;
