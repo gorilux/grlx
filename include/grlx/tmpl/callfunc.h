@@ -29,8 +29,41 @@
 #define GRLX_TMPLCALLFUNC_H
 
 #include <functional>
+#include <tuple>
 
 namespace grlx {
+
+template<typename S>
+struct Signature;
+
+template<typename R, typename... Args>
+struct Signature<R(Args...)>
+{
+    using ReturnType = R;
+    using ArgumentType = std::tuple<Args...>;
+};
+
+template<typename R, typename... Args>
+struct Signature<R(Args...) const>
+{
+    using ReturnType = R;
+    using ArgumentType = std::tuple<Args...>;
+};
+
+template<typename R, typename C, typename... Args>
+struct Signature<R(C::*)(Args...)>
+{
+    using ReturnType = R;
+    using ArgumentType = std::tuple<Args...>;
+};
+
+template<typename R, typename C, typename... Args>
+struct Signature<R(C::*)(Args...) const>
+{
+    using ReturnType = R;
+    using ArgumentType = std::tuple<Args...>;
+};
+
 
 
 template<int...> struct IndexTuple{};
@@ -65,6 +98,19 @@ template<typename R, typename ...FArgs, typename...TArgs>
 R callFunc(std::function<R(FArgs...)>& func, std::tuple<TArgs...>& args)
 {
     return callFuncHelper(func, typename MakeIndexes<FArgs...>::type(), std::forward<std::tuple<TArgs...>>(args));
+}
+
+
+template<typename R, typename Class, typename ...FArgs, typename...TArgs, int ...Indexes>
+R callMemFuncHelper(R(Class::*mem)(FArgs...) const, Class* obj, IndexTuple< Indexes... > ,const std::tuple<TArgs...>& args)
+{
+    return (obj->*mem)(std::forward<TArgs>(std::get<Indexes>(args))...);
+}
+
+template<typename R, typename Class, typename ...FArgs, typename...TArgs>
+R callMemFunc(R(Class::*mem)(FArgs...) const, Class* obj, const std::tuple<TArgs...>& args)
+{
+    return callMemFuncHelper(mem, obj, typename MakeIndexes<FArgs...>::type(), args);
 }
 
 
