@@ -40,28 +40,28 @@ template<typename R, typename... Args>
 struct Signature<R(Args...)>
 {
     using ReturnType = R;
-    using ArgumentType = std::tuple<Args...>;
+    using ArgumentType = std::tuple<typename std::decay<Args>::type ... >;
 };
 
 template<typename R, typename... Args>
 struct Signature<R(Args...) const>
 {
     using ReturnType = R;
-    using ArgumentType = std::tuple<Args...>;
+    using ArgumentType = std::tuple<typename std::decay<Args>::type ... >;
 };
 
 template<typename R, typename C, typename... Args>
 struct Signature<R(C::*)(Args...)>
 {
     using ReturnType = R;
-    using ArgumentType = std::tuple<Args...>;
+    using ArgumentType = std::tuple<typename std::decay<Args>::type ... >;
 };
 
 template<typename R, typename C, typename... Args>
 struct Signature<R(C::*)(Args...) const>
 {
     using ReturnType = R;
-    using ArgumentType = std::tuple<Args...>;
+    using ArgumentType = std::tuple<typename std::decay<Args>::type ... >;
 };
 
 
@@ -104,7 +104,7 @@ R callFunc(std::function<R(FArgs...)>& func, std::tuple<TArgs...>& args)
 template<typename R, typename Class, typename ...FArgs, typename...TArgs, int ...Indexes>
 R callMemFuncHelper(R(Class::*mem)(FArgs...) const, Class* obj, IndexTuple< Indexes... > ,const std::tuple<TArgs...>& args)
 {
-    return (obj->*mem)(std::forward<TArgs>(std::get<Indexes>(args))...);
+    return (obj->*mem)(std::get<Indexes>(args)...);
 }
 
 template<typename R, typename Class, typename ...FArgs, typename...TArgs>
