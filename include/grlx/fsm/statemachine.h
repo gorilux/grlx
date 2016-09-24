@@ -34,6 +34,8 @@
 #include <utility>
 #include <tuple>
 #include <deque>
+#include <array>
+#include <atomic>
 
 
 #include <grlx/tmpl/sequenceops.h>
@@ -465,9 +467,6 @@ public:
     typedef std::function< HandleStatus::Type ()> DeferedEventFunc;
     typedef std::deque< std::pair<DeferedEventFunc, bool> > DeferEventListType;
 
-    //typedef std::deque< std::pair<DeferedEvent*, bool> > DeferEventListType;
-
-
     typedef typename ToTuple<StateTypeList>::Type StatesList;
 
     template<typename EventT>
@@ -633,15 +632,12 @@ public:
             {
                 itr->second = false;
             }
+
             if(!deferList[region].empty())
             {
-                //DeferedEvent* ev = this->deferList.front().first;
-
                 auto evProcessor = std::move( this->deferList[region].front().first );
-
                 this->deferList[region].pop_front();                
                 evProcessor();
-
             }
         }
         else
@@ -670,10 +666,8 @@ private:
 
     void Init()
     {
-        //state[0] = GetStateID<Stt,InitialState>::value;
-        std::fill_n(state,sizeof(state), 0);
-        //isProcessingEvent = false;
-        std::fill_n(isProcessingEvent,sizeof(isProcessingEvent), false);
+        std::fill(state.begin(),state.end(), 0);
+        std::fill(isProcessingEvent.begin(),isProcessingEvent.end(), false);
     }
 
     Fsm* Self()
@@ -685,9 +679,9 @@ private:
     friend struct DispatchTable;
 
     StatesList         states;    
-    DeferEventListType deferList[RegionCount::value];
-    int                state[RegionCount::value];
-    bool               isProcessingEvent[RegionCount::value];
+    std::array<DeferEventListType, RegionCount::value> deferList;
+    std::array<std::atomic_int,  RegionCount::value> state;
+    std::array<std::atomic_bool, RegionCount::value> isProcessingEvent;
 
 };
 

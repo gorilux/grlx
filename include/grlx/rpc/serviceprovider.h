@@ -34,7 +34,7 @@
 #include <functional>
 #include <memory>
 #include <unordered_map>
-#include <grlx/asyncmanager/asyncmanager.h>
+#include <grlx/async/asyncmanager.h>
 #include <grlx/tmpl/callfunc.h>
 
 #include "connection.h"
