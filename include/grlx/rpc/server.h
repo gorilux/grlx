@@ -29,12 +29,37 @@
 
 #include <memory>
 #include <unordered_map>
+#include <type_traits>
 
 #include "connection.h"
 #include "serviceprovider.h"
 
 namespace grlx {
 namespace rpc {
+namespace details {
+
+template<typename T>
+class IsDefaultConstructible
+{
+
+    typedef char yes;
+    typedef struct { char arr[2]; } no;
+
+    template<typename U>
+    static decltype(U(), yes()) test(int);
+
+    template<typename>
+    static no test(...);
+
+public:
+
+    static const bool value = sizeof(test<T>(0)) == sizeof(yes);
+};
+
+
+
+}
+
 
 template<typename ServiceProvider, typename TransportType >
 class Server : public TransportType::template ServerImpl< Server<ServiceProvider, TransportType> >
@@ -45,17 +70,22 @@ class Server : public TransportType::template ServerImpl< Server<ServiceProvider
 public:
     using Type = Server;
     using ConnectionType = typename Connection<typename BaseType::ConnectionType>::Type;
+    using CreateServiceDelegate = std::function< std::shared_ptr< ServiceProvider>() >;
 
     template<typename ...TArgs>
     Server(TArgs&&... args)
         : BaseType(std::forward<TArgs>(args)...),
           disposing(false)
     {
-        createServiceDelegate = [] ()
-        {
-            return std::make_shared<ServiceProvider>();
-        };
+        checkAndAssignDefaultFactory<ServiceProvider>();
     }
+
+    void setServiceFactory( CreateServiceDelegate serviceFactory)
+    {
+        createServiceDelegate = serviceFactory;
+    }
+
+
 
     ~Server()
     {
@@ -64,11 +94,23 @@ public:
         dispose();
 
     }
-
-
 private:
     friend BaseType;
     friend ConnectionType;
+
+
+    template<typename T>
+    typename std::enable_if<details::IsDefaultConstructible<T>::value>::type
+    checkAndAssignDefaultFactory()
+    {
+        createServiceDelegate = [] ()
+            {
+                return std::make_shared<T>();
+            };
+    }
+    template<typename T>
+    typename std::enable_if<!details::IsDefaultConstructible<T>::value>::type
+    checkAndAssignDefaultFactory(){ }
 
 
     void disconnected(std::shared_ptr<ConnectionType> const& connection)

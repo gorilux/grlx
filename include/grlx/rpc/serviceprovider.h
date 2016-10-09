@@ -143,15 +143,15 @@ public:
     template<typename R, typename... TArgs>
     std::future<R> invoke(std::string&& procName, TArgs&&... args )
     {
-        auto promise = std::make_shared<std::promise<R>>();        
+        auto promise = std::make_shared<std::promise<R>>();
 
         auto asyncOp = asyncManager.createOperation(
-                    [promise](typename EncoderType::ResultType const& result)
-        {          
-            R res;
-            EncoderType::decodeType(result, res);
-            promise->set_value(res);
-        });
+            [promise](typename EncoderType::ResultType const& result)
+            {
+                R res;
+                EncoderType::decodeType(result, res);
+                promise->set_value(res);
+            });
 
         Request<TArgs...> request(std::forward<std::string>(procName),
                                   asyncOp->id(),
@@ -183,9 +183,9 @@ public:
         auto handler = std::make_shared< HandlerType >( this );
 
         handler->proc = [&, objPtr, memFunc](ArgsT&&... args) -> R
-        {
-            return (objPtr->*memFunc)(args...);
-        };
+            {
+                return (objPtr->*memFunc)(args...);
+            };
 
 
         this->add(std::forward<std::string>(name), std::move(handler));
@@ -200,9 +200,9 @@ public:
         auto handler = std::make_shared< HandlerType >( this );
 
         handler->proc = [&, objPtr, memFunc](ArgsT&&... args) -> R
-        {
-            return (objPtr->*memFunc)(args...);
-        };
+            {
+                return (objPtr->*memFunc)(args...);
+            };
 
 
         this->add(std::forward<std::string>(name), std::move(handler));
@@ -219,7 +219,7 @@ public:
         std::swap(handler->proc, func);
 
         this->add(std::forward<std::string>(name), std::move(handler));
-    }    
+    }
 
 
 
@@ -240,8 +240,8 @@ private:
 
     template<typename Handler>
     void add(std::string&& name, std::shared_ptr<Handler>&& handler)
-    {       
-       dispatchTable.emplace(std::forward<std::string>(name), handler);
+    {
+        dispatchTable.emplace(std::forward<std::string>(name), handler);
     }
 
     template<typename TParams>
