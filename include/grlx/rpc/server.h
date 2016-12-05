@@ -61,100 +61,67 @@ public:
 }
 
 
-template<typename ServiceProvider, typename TransportType >
-class Server : public TransportType::template ServerImpl< Server<ServiceProvider, TransportType> >
+template<typename EncoderType, typename TransportType >
+class Server : public ServiceProvider< EncoderType , typename TransportType::template ServerImpl< Server< EncoderType , TransportType> > >::Type
 {
 
-    using BaseType = typename TransportType::template ServerImpl< Server<ServiceProvider, TransportType> >::Type;
+    using BaseType = typename ServiceProvider< EncoderType, typename TransportType::template ServerImpl< Server< EncoderType, TransportType> > >::Type;
+    using Impl = typename TransportType::template ServerImpl< Server< EncoderType , TransportType> >;
 
 public:
     using Type = Server;
     using ConnectionType = typename Connection<typename BaseType::ConnectionType>::Type;
-    using CreateServiceDelegate = std::function< std::shared_ptr< ServiceProvider>() >;
+    using CreateServiceDelegate = std::function< std::shared_ptr< ServiceProvider<EncoderType> >() >;
 
     template<typename ...TArgs>
     Server(TArgs&&... args)
         : BaseType(std::forward<TArgs>(args)...),
           disposing(false)
     {
-        checkAndAssignDefaultFactory<ServiceProvider>();
+
     }
-
-    void setServiceFactory( CreateServiceDelegate serviceFactory)
-    {
-        createServiceDelegate = serviceFactory;
-    }
-
-
 
     ~Server()
     {
         disposing = true;
 
         dispose();
-
     }
 private:
-    friend BaseType;
+    friend Impl;
     friend ConnectionType;
-
-
-    template<typename T>
-    typename std::enable_if<details::IsDefaultConstructible<T>::value>::type
-    checkAndAssignDefaultFactory()
-    {
-        createServiceDelegate = [] ()
-            {
-                return std::make_shared<T>();
-            };
-    }
-    template<typename T>
-    typename std::enable_if<!details::IsDefaultConstructible<T>::value>::type
-    checkAndAssignDefaultFactory(){ }
-
 
     void disconnected(std::shared_ptr<ConnectionType> const& connection)
     {
         if(disposing)
             return;
-
-        auto serviceItr = activeServices.find( connection );
-        if(serviceItr != activeServices.end())
-        {
-            //serviceItr->second->cancel();
-            activeServices.erase(serviceItr);
-        }
     }
     void dispose()
     {
-        for(auto service: activeServices)
+        for(auto connection: outstandingConnections)
         {
-            service.first->close();
+            connection->close();
         }
     }
 
     bool accept(std::shared_ptr<ConnectionType> const& newConnection)
     {
 
-        auto newService = createServiceDelegate();
+        this->bind(newConnection.get());
 
-        newService->bind(newConnection.get());
-
-        activeServices.insert(std::make_pair( newConnection, newService));
+        outstandingConnections.push_back( newConnection );
 
         return true;
     }
 
     void handleClosed()
     {
-        activeServices.clear();
+        outstandingConnections.clear();
     }
 
-
-
 private:
-    std::function< std::shared_ptr< ServiceProvider>() > createServiceDelegate;
-    std::unordered_map< std::shared_ptr<ConnectionType>, std::shared_ptr<ServiceProvider > > activeServices;
+
+    std::list< std::shared_ptr<ConnectionType> > outstandingConnections;
     bool disposing;
 
 

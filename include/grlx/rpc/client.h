@@ -30,15 +30,16 @@
 #include <memory>
 
 #include "connection.h"
+#include "serviceprovider.h"
 
 namespace grlx {
 namespace rpc {
 
 
-template<typename ServiceProvider, typename TransportType >
-class Client : public ServiceProvider, public Connection< typename TransportType::template ClientImpl< Client<ServiceProvider, TransportType> > >::Type
+template<typename EncoderType, typename TransportType >
+class Client : public ServiceProvider<EncoderType>, public Connection< typename TransportType::template ClientImpl< Client< EncoderType, TransportType> > >::Type
 {
-    using BaseType = typename Connection< typename TransportType::template ClientImpl< Client<ServiceProvider, TransportType> > >::Type;
+    using BaseType = typename Connection< typename TransportType::template ClientImpl< Client< EncoderType, TransportType> > >::Type;
 
 public:
     using Type = Client;

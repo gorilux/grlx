@@ -123,6 +123,7 @@ class ServiceProvider : public BaseType
 public:
 
     using DataHandler = std::function<int(const char*, int)>;
+    using Type = ServiceProvider< EncoderType, BaseType>;
 
     template<typename ...TArgs>
     ServiceProvider( TArgs&&... args)
