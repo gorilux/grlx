@@ -31,6 +31,7 @@
 
 #include "connection.h"
 #include "serviceprovider.h"
+#include "invoker.h"
 
 namespace grlx {
 namespace rpc {

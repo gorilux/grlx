@@ -219,7 +219,7 @@ struct JsonTypeEncoder<std::tuple<ArgsT...>, Details::TupleType>
     static void encode(TupleT const& args, Writer& writer)
     {
 
-        TupleEncoder<EncoderType, TupleT >::encode(args, writer);        
+        TupleEncoder<EncoderType, TupleT >::encode(args, writer);
 
     }
 
@@ -257,7 +257,7 @@ struct JsonTypeEncoder<T, Details::FundamentalType>
         std::is_unsigned<U>::value && std::is_integral<U>::value
     >::type
     encode(U value, Writer& writer)
-    {        
+    {
         writer.Uint(value);
     }
 
@@ -402,7 +402,7 @@ struct JsonTypeEncoder<T, Details::ComplexType>
             Packer<rapidjson::Document::ConstValueIterator> packer(itr);
 
             return t.unpack(packer);
-        }    
+        }
         return false;
 
     }
@@ -425,8 +425,8 @@ public:
     typedef rapidjson::GenericValue< rapidjson::UTF8<> > ResultType;
 
 
-    template<typename TMsg, typename ServiceProviderType>
-    static void encode(TMsg const& msg, ServiceProviderType& serviceProvider)
+    template<typename TMsg, typename ConnectionType>
+    static void encode(TMsg const& msg, ConnectionType& connection)
     {
 
         rapidjson::MemoryBuffer buffer;
@@ -435,12 +435,12 @@ public:
 
         Details::JsonTypeEncoder<TMsg>::encode(msg, writer);
 
-        serviceProvider.send(buffer.GetBuffer(), buffer.GetSize());
+        connection.send(buffer.GetBuffer(), buffer.GetSize());
     }
 
 
     template<typename InputStream, typename ServiceProviderType>
-    static bool decode(InputStream& is, ServiceProviderType& serviceProvider)
+    static bool decodeMsg(InputStream& is, ServiceProviderType& serviceProvider)
     {
 
         rapidjson::Document document;
@@ -498,7 +498,25 @@ public:
 
         }
 
-        itr = document.FindMember("result");
+        return true;
+    }
+
+    template<typename InputStream, typename HandlerType>
+    static bool decodeResp(InputStream& is, HandlerType& handler)
+    {
+
+        rapidjson::Document document;
+
+        document.ParseStream<rapidjson::kParseIterativeFlag, rapidjson::Document::EncodingType, InputStream>(is);
+
+        if(document["jsonrpc"] != "2.0")
+        {
+            // handler.error
+            return false;
+        }
+
+
+        auto itr = document.FindMember("result");
         if(itr != document.MemberEnd())
         {
             auto& resultsRef = itr->value;
@@ -506,20 +524,28 @@ public:
             itr = document.FindMember("id");
             if(itr != document.MemberEnd())
             {
-                auto& idRef = itr->value;                
-                serviceProvider.reply(idRef.GetInt(), resultsRef);
+                auto& idRef = itr->value;
+                handler.reply(idRef.GetInt(), resultsRef);
             }
 
         }
-        return false;
+        return true;
     }
 
-    template<typename Ch, typename ServiceProviderType>
-    static bool decode(Ch* buffer, int size, ServiceProviderType& serviceProvider)
+    template<typename Ch, typename HandlerType>
+    static bool decodeMsg(Ch* buffer, int size, HandlerType& handler)
     {
         rapidjson::MemoryStream inputStream(buffer, size);
 
-        return decode(inputStream, serviceProvider);
+        return decodeMsg(inputStream, handler);
+    }
+
+    template<typename Ch, typename HandlerType>
+    static bool decodeResp(Ch* buffer, int size, HandlerType& handler)
+    {
+        rapidjson::MemoryStream inputStream(buffer, size);
+
+        return decodeResp(inputStream, handler);
     }
 
     template<typename TParams, typename ...TArgs>
@@ -543,7 +569,7 @@ public:
 
         switch(jsonValue.GetType()){
             case rapidjson::kArrayType:
-            case rapidjson::kObjectType:           
+            case rapidjson::kObjectType:
             case rapidjson::kStringType:
             case rapidjson::kNumberType:
                  return Details::JsonTypeEncoder<T>::decode(t, jsonValue);
@@ -564,4 +590,3 @@ public:
 #include "stdtypes_encoder.h"
 
 #endif // SHARE2CLOUD_RPC_ENCODER_H
-

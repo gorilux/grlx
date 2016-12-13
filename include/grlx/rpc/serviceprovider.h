@@ -141,40 +141,6 @@ public:
         connection->setMsgHandler(std::bind(&ServiceProvider::handleMessage, this, std::placeholders::_1, std::placeholders::_2));
     }
 
-    template<typename R, typename... TArgs>
-    std::future<R> invoke(std::string&& procName, TArgs&&... args )
-    {
-        auto promise = std::make_shared<std::promise<R>>();
-
-        auto asyncOp = asyncManager.createOperation(
-            [promise](typename EncoderType::ResultType const& result)
-            {
-                R res;
-                EncoderType::decodeType(result, res);
-                promise->set_value(res);
-            });
-
-        Request<TArgs...> request(std::forward<std::string>(procName),
-                                  asyncOp->id(),
-                                  std::forward<TArgs>(args)...);
-
-        EncoderType::encode(request, *this);
-
-        return promise->get_future();
-
-    }
-
-    template<typename... TArgs>
-    void notify(std::string&& procName, TArgs&&... args )
-    {
-
-        Notification<TArgs...> notification(std::forward<std::string>(procName), std::forward<TArgs>(args)...);
-
-        EncoderType::encode(notification, *this);
-
-    }
-
-
     template<typename R, typename C, typename ...ArgsT>
     void add(std::string&& name, C* objPtr, R(C::*memFunc)(ArgsT...) const)
     {
@@ -230,7 +196,7 @@ private:
 
     int handleMessage(const char* msg, int size)
     {
-        EncoderType::decode(msg, size, *this);
+        EncoderType::decodeMsg(msg, size, *this);
         return 0;
     }
 
@@ -267,17 +233,6 @@ private:
         }
     }
 
-    template<typename TResult>
-    void reply(int id, TResult const& result)
-    {
-
-        auto asyncOp = asyncManager.getOperation<void, const TResult&>(id);
-
-        if(asyncOp)
-            asyncOp->complete(result);
-
-    }
-
     void error(const std::string& method, int id)
     {
 
@@ -292,7 +247,6 @@ private:
 private:
     friend EncoderType;
     MsgHandler sendMsgDelegate;
-    AsyncManager<int> asyncManager;
 
     std::unordered_map<std::string, HandlerPtr> dispatchTable;
 
