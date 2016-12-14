@@ -56,9 +56,11 @@ class Invoker: public BaseType
 
 public:
 
+    using Type = Invoker;
+
     template<typename ...TArgs>
     Invoker( TArgs&&... args)
-        : Invoker(std::forward<TArgs>(args)...)
+        : BaseType(std::forward<TArgs>(args)...)
     {
 
     }

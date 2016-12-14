@@ -38,9 +38,9 @@ namespace rpc {
 
 
 template<typename EncoderType, typename TransportType >
-class Client : public ServiceProvider<EncoderType>, public Connection< typename TransportType::template ClientImpl< Client< EncoderType, TransportType> > >::Type
+class Client : public Invoker<EncoderType, Connection< typename TransportType::template ClientImpl< Client< EncoderType, TransportType> > > >
 {
-    using BaseType = typename Connection< typename TransportType::template ClientImpl< Client< EncoderType, TransportType> > >::Type;
+    using BaseType = typename Invoker<EncoderType, Connection< typename TransportType::template ClientImpl< Client< EncoderType, TransportType> > > >::Type;
 
 public:
     using Type = Client;

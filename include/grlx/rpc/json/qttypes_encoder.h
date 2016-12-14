@@ -43,7 +43,7 @@
 #include <iterator>
 
 
-#include <grlx/rpc/json_encoder.h>
+#include <grlx/rpc/json/encoder.h>
 
 namespace grlx {
 
