@@ -20,17 +20,10 @@
 #ifndef GRLX_TMPL_SIGNAL_H_
 #define GRLX_TMPL_SIGNAL_H_
 
-#include <list>
 #include <map>
 #include <mutex>
 #include <functional>
-#include <algorithm>
-#include <utility>
 
-#include <grlx/tmpl/reference.h>
-#include <grlx/tmpl/pointer.h>
-#include <grlx/tmpl/foreach.h>
-#include <grlx/tmpl/stlext.h>
 
 namespace grlx
 {
