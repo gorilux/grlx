@@ -27,12 +27,12 @@
 #ifndef GRLX_FSM_ASYNCSTATEMACHINE_H
 #define GRLX_FSM_ASYNCSTATEMACHINE_H
 
-
+#include <memory>
 #include <functional>
 #include <utility>
 #include <thread>
 #include <future>
-#include <grlx/async/dispatchqueue.h>
+#include <grlx/async/blockingqueue.h>
 #include <grlx/fsm/statemachine.h>
 
 
@@ -52,14 +52,13 @@ class SyncStateMachine : public StateMachine< FSMDef, DerivedType >
 
 public:
 
-
-
     template<typename ...TArgs>
     SyncStateMachine(TArgs... args)
         : _BaseType(args...)
     {
 
     }
+    virtual ~SyncStateMachine(){ }
 
     template<typename EventT>
     void IncomingEvent( EventT const& event)
@@ -86,35 +85,39 @@ class AsyncStateMachine : public SyncStateMachine <FSMDef, DerivedType>
     using _BaseType = SyncStateMachine< FSMDef, DerivedType >;
     using SelfType  = AsyncStateMachine;
     using ProcessEventAsyncFunc = std::function< void() >;
+    using EventQueueType = grlx::async::BlockingQueue<ProcessEventAsyncFunc>;
 
 
 public:
     template<typename ...TArgs>
     AsyncStateMachine(TArgs... args)
         : _BaseType(args...),
+          eventQueue(new EventQueueType() ),
           thread(std::bind(&AsyncStateMachine::Run, this))
 
     {
 
     }
-    ~AsyncStateMachine()
+    virtual ~AsyncStateMachine()
     {
+        eventQueue.reset();
+
         thread.join();
     }
     template<typename EventT>
     void IncomingEvent( EventT const& event)
     {
-        eventList.pushBack(std::bind(&AsyncStateMachine::template SynchronizedProcessEvent<EventT>,this, event ));
+        eventQueue->pushBack(std::bind(&AsyncStateMachine::template SynchronizedProcessEvent<EventT>,this, event ));
     }
 
 private:
     void Run()
     {
-        AsyncStateMachine::Start();
+        this->Start();
         while(true)
         {
             ProcessEventAsyncFunc func;
-            if( eventList.popFront(func) )
+            if( eventQueue->popFront(func) )
             {
                 func();
             }
@@ -126,8 +129,8 @@ private:
     }
 
 private:
+    std::unique_ptr<EventQueueType> eventQueue;
     std::thread thread;
-    grlx::async::DispatchQueue<ProcessEventAsyncFunc> eventList;
 
 
 

@@ -26,9 +26,26 @@ public:
         container.pop_front();
     }
 
-    TaskType&& top() const
+    const TaskType& top() const
     {
         return container.front();
+    }
+
+    TaskType& top()
+    {
+        return container.front();
+    }
+    std::size_t size() const
+    {
+        return container.size();
+    }
+    bool empty() const
+    {
+        return container.empty();
+    }
+    void clear()
+    {
+        container.clear();
     }
 
 protected:
@@ -38,7 +55,7 @@ protected:
 
 
 
-
+//template< template <typename> class SchedulingPolicy =
 class ThreadPool
 {
 public:
@@ -56,6 +73,7 @@ public:
 private:
 
 
+    //FifoScheduler<> scheduler;
 
 private:
 

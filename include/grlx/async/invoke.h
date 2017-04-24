@@ -1,16 +1,20 @@
 #pragma once
-
+xo
 #include <thread>
 #include <future>
+#include <functional>
 
 namespace grlx
 {
 
-template<typename F, typename ...Args>
-auto async( F&& f, Args&&... args) -> std::future<decltype(f(args...))>
+namespace async
 {
-    std::packaged_task<decltype(f(args...))>
-            task(std::bind( std::forward(f), std::forward<Args>...));
+
+template<typename F, typename ...Args>
+auto invoke( F&& f, Args&&... args) -> std::future<decltype(f(args...))>
+{
+    std::packaged_task<decltype(f(args...))()>
+            task(std::bind( std::forward<F>(f), std::forward<Args>(args)...));
 
     auto future = task.get_future();
 
@@ -20,4 +24,5 @@ auto async( F&& f, Args&&... args) -> std::future<decltype(f(args...))>
     return future;
 }
 
+}
 }

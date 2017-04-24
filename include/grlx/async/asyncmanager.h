@@ -25,8 +25,7 @@
 /// @author Copyright 2015, David Salvador Pinheiro
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef GRLX_ASYNC_ASYNCMANAGER_H
-#define GRLX_ASYNC_ASYNCMANAGER_H
+#pragma once
 
 #include <memory>
 #include <functional>
@@ -238,7 +237,7 @@ public:
 
     template<typename TResult, typename ...TArgs>
     typename AsyncOperation<IDType, TFunc<TResult, TArgs...> >::Ptr createOperation(TFunc<TResult, TArgs...>&& func)
-    {        
+    {
         std::lock_guard<std::mutex> lock(_syncMtx);
 
         completedAsyncOps.clear();
@@ -296,6 +295,3 @@ private:
 
 
 }
-
-#endif // ASYNCMANAGER_H
-

@@ -37,15 +37,15 @@ namespace async
 {
 
 template<typename T>
-class DispatchQueue
+class BlockingQueue
 {
 public:
-    DispatchQueue():
+    BlockingQueue():
         disposing(false)
     {
 
     }
-    ~DispatchQueue()
+    ~BlockingQueue()
     {
         disposing = true;
         dataCond.notify_all();

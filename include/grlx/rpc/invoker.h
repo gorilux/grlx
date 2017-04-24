@@ -35,6 +35,7 @@
 #include <functional>
 #include <memory>
 #include <unordered_map>
+
 #include <grlx/async/asyncmanager.h>
 #include <grlx/tmpl/callfunc.h>
 
@@ -93,6 +94,27 @@ public:
         EncoderType::encode(request, *this);
 
         return promise->get_future();
+
+    }
+
+    template<typename R, typename F, typename ...TArgs>
+    void invokeAsync(F&& callback, std::string&& procName, TArgs&&... args)
+    {
+
+        auto asyncOp = asyncManager.createOperation(
+            [f = std::move(callback) ](typename EncoderType::ResultType const& result)
+            {
+                R res;
+                EncoderType::decodeType(result, res);
+                f( res );
+            });
+
+        Request<TArgs...> request(std::forward<std::string>(procName),
+                                  asyncOp->id(),
+                                  std::forward<TArgs>(args)...);
+
+        EncoderType::encode(request, *this);
+
 
     }
 
