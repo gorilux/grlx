@@ -4,11 +4,15 @@
 #include <future>
 #include <functional>
 #include <deque>
+#include <mutex>
+#include <condition_variable>
 
 namespace grlx
 {
 namespace async
 {
+
+using TaskFunc = std::function<void()>;
 
 template<typename Task>
 class FifoScheduler
@@ -55,31 +59,49 @@ protected:
 
 
 
-//template< template <typename> class SchedulingPolicy =
+template<
+    template <typename> class SchedulingPolicy = FifoScheduler
+>
 class ThreadPool
 {
 public:
+
+    using TaskType = TaskFunc;
+
     ThreadPool( std::size_t threadCount = std::thread::hardware_concurrency() )
     {
 
     }
 
     template<typename F, typename ...Args>
-    auto schedule( F&& f, Args&&... args) -> std::future<decltype(f(args...))>
+    auto schedule( F&& func, Args&&... args) -> std::future<decltype(func(args...))>
     {
+        std::packaged_task<decltype(f(args...))()>
+                task(std::bind( std::forward<F>(func), std::forward<Args>(args)...));
 
+        auto future = task.get_future();
+
+        TaskType work = [t = std::move(task)](){
+            t();
+        };
+
+        scheduler.push( std::move(work) );
+
+        return future;
     }
 
 private:
 
 
-    //FifoScheduler<> scheduler;
+    SchedulingPolicy<TaskType> scheduler;
 
 private:
 
     std::vector<std::thread> workers;
 };
 
+
+using FifoThreadPool = ThreadPool< FifoScheduler >;
 
 }
 }

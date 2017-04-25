@@ -1,5 +1,5 @@
 #pragma once
-xo
+
 #include <thread>
 #include <future>
 #include <functional>
