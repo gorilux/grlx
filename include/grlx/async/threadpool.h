@@ -20,6 +20,7 @@ class FifoScheduler
 public:
 
     using TaskType = Task;
+
     bool push( TaskType&& task)
     {
         container.push_back( std::forward<TaskType>(task));
@@ -69,23 +70,69 @@ public:
     using TaskType = TaskFunc;
 
     ThreadPool( std::size_t threadCount = std::thread::hardware_concurrency() )
+        : running(true)
     {
+        for(auto i = 0; i < threadCount; i++)
+        {
+            workers.emplace_back( [this]()
+            {
+                for(;;)
+                {
 
+                    TaskType task;
+                    {
+                        std::unique_lock<std::mutex> lock(sync);
+                        cv.wait(lock, [this]() ->bool { return !this->running || !this->scheduler.empty(); });
+                        if(!running && scheduler.empty()){
+                            return;
+                        }
+                        task = std::move( scheduler.top() );
+                        scheduler.pop();
+                    }
+                    task();
+                }
+
+            });
+
+        }
+
+    }
+
+    ~ThreadPool()
+    {
+        {
+            std::unique_lock<std::mutex> lock(sync);
+            running = false;
+            scheduler.clear();
+        }
+
+
+        cv.notify_all();
+        for(auto& w: workers)
+        {
+            w.join();
+        }
     }
 
     template<typename F, typename ...Args>
     auto schedule( F&& func, Args&&... args) -> std::future<decltype(func(args...))>
     {
-        std::packaged_task<decltype(f(args...))()>
-                task(std::bind( std::forward<F>(func), std::forward<Args>(args)...));
+        std::unique_lock<std::mutex> lock(sync);
 
-        auto future = task.get_future();
+        using PT = std::packaged_task<decltype(func(args...))()>;
 
-        TaskType work = [t = std::move(task)](){
-            t();
-        };
+        std::shared_ptr<PT> task(new PT(std::bind( std::forward<F>(func), std::forward<Args>(args)...) ));
+
+        auto future = task->get_future();
+
+        std::function<void()> work = std::bind([task](){
+
+            (*task)();
+        });
 
         scheduler.push( std::move(work) );
+
+        cv.notify_one();
 
         return future;
     }
@@ -93,10 +140,13 @@ public:
 private:
 
 
-    SchedulingPolicy<TaskType> scheduler;
+
 
 private:
-
+    std::mutex sync;
+    std::condition_variable cv;
+    bool running;
+    SchedulingPolicy<TaskType> scheduler;
     std::vector<std::thread> workers;
 };
 
