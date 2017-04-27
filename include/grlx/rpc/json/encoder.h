@@ -425,8 +425,8 @@ public:
     typedef rapidjson::GenericValue< rapidjson::UTF8<> > ResultType;
 
 
-    template<typename TMsg, typename ConnectionType>
-    static void encode(TMsg const& msg, ConnectionType& connection)
+    template<typename TMsg, typename ServiceProviderType>
+    static void encode(TMsg const& msg, ServiceProviderType& serviceProvider)
     {
 
         rapidjson::MemoryBuffer buffer;
@@ -435,7 +435,7 @@ public:
 
         Details::JsonTypeEncoder<TMsg>::encode(msg, writer);
 
-        connection.send(buffer.GetBuffer(), buffer.GetSize());
+        serviceProvider.send(buffer.GetBuffer(), buffer.GetSize());
     }
 
 

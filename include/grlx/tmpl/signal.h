@@ -29,7 +29,7 @@ namespace grlx
 {
 
 template<typename Sig>
-struct Signal;
+class Signal;
 
 template<typename R, typename ...Args>
 class Signal<R(Args...)>
