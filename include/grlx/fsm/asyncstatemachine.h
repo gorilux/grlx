@@ -31,9 +31,12 @@
 #include <functional>
 #include <utility>
 #include <thread>
+#include <memory>
 #include <future>
+#include <condition_variable>
 #include <grlx/async/blockingqueue.h>
 #include <grlx/fsm/statemachine.h>
+#include <grlx/async/threadpool.h>
 
 
 namespace grlx
@@ -92,7 +95,7 @@ public:
     template<typename ...TArgs>
     AsyncStateMachine(TArgs... args)
         : _BaseType(args...),
-          eventQueue(new EventQueueType() ),
+          running(true),
           thread(std::bind(&AsyncStateMachine::Run, this))
 
     {
@@ -100,14 +103,19 @@ public:
     }
     virtual ~AsyncStateMachine()
     {
-        eventQueue.reset();
+        {
+            std::unique_lock<std::mutex> lock(sync);
+            running = false;
+            eventQueue.clear();
+        }
 
+        cv.notify_all();
         thread.join();
     }
     template<typename EventT>
     void IncomingEvent( EventT const& event)
     {
-        eventQueue->pushBack(std::bind(&AsyncStateMachine::template SynchronizedProcessEvent<EventT>,this, event ));
+        eventQueue.push(std::bind(&AsyncStateMachine::template SynchronizedProcessEvent<EventT>,this, event ));
     }
 
 private:
@@ -117,19 +125,26 @@ private:
         while(true)
         {
             ProcessEventAsyncFunc func;
-            if( eventQueue->popFront(func) )
             {
-                func();
+                std::unique_lock<std::mutex> lock(sync);
+
+                cv.wait(lock, [this]() ->bool { return !this->running || !this->eventQueue.empty(); });
+                if(!running && eventQueue.empty()){
+                    return;
+                }
+                func = std::move( eventQueue.top() );
+                eventQueue.pop();
             }
-            else
-            {
-                break;
-            }
+            func();
+
         }
     }
 
 private:
-    std::unique_ptr<EventQueueType> eventQueue;
+    std::mutex sync;
+    std::condition_variable cv;
+    grlx::async::FifoScheduler<ProcessEventAsyncFunc> eventQueue;
+    bool running;
     std::thread thread;
 
 
