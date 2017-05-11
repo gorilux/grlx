@@ -72,7 +72,7 @@ public:
     ThreadPool( std::size_t threadCount = std::thread::hardware_concurrency() )
         : running(true)
     {
-        for(auto i = 0; i < threadCount; i++)
+        for(std::size_t i = 0; i < threadCount; i++)
         {
             workers.emplace_back( [this]()
             {
