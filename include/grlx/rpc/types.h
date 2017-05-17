@@ -304,8 +304,12 @@ struct TypeID<std::unordered_multimap<K,U>> : IntConst<kStdLibTypes + 11>
 
 namespace Details
 {
-    class DummyBaseClass{ public: };
-    class DummyBaseStruct { public: };
+
+class DummyBaseClass{ public: };
+class DummyBaseStruct { public: };
+class None { public: };
+
+
 }
 
 

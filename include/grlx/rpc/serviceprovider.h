@@ -34,8 +34,10 @@
 #include <functional>
 #include <memory>
 #include <unordered_map>
+#include <unordered_set>
 #include <grlx/async/asyncmanager.h>
 #include <grlx/tmpl/callfunc.h>
+#include <grlx/rpc/invoker.h>
 
 #include "connection.h"
 #include "utility.h"
@@ -48,12 +50,16 @@ namespace rpc
 {
 
 template<typename EncoderType, typename BaseType = Details::DummyBaseClass>
-class ServiceProvider : public BaseType
+class ServiceProvider : public BaseType //public Invoker<EncoderType, BaseType, ServiceProvider<EncoderType, BaseType> >
 {
 
-    struct Session;
+public:
+
+    class Session;
 
     using SessionPtr = std::shared_ptr<Session>;
+
+private:
 
     struct HandlerBase
     {
@@ -123,14 +129,20 @@ class ServiceProvider : public BaseType
 
     using HandlerPtr = std::shared_ptr< HandlerBase >;
 
+public:
 
-    struct Session : public std::enable_shared_from_this<Session>
+    class Session : public Invoker<  EncoderType, std::enable_shared_from_this<Session>, Session>
     {
 
+        friend ServiceProvider;
+        friend EncoderType;
+    public:
         Session(ServiceProvider* serviceProvider)
             : serviceProvider(serviceProvider)
         {
         }
+    protected:
+
 
         template<typename TParams>
         void exec(const std::string& method, int id, TParams const& params)
@@ -157,7 +169,7 @@ class ServiceProvider : public BaseType
 
         int handleMessage(const char* msg, int size)
         {
-            EncoderType::decodeMsg(msg, size, *this);
+            EncoderType::decode(msg, size, *this);
             return 0;
         }
 
@@ -172,30 +184,17 @@ class ServiceProvider : public BaseType
 
     };
 
-
-
-public:
-
     using DataHandler = std::function<int(const char*, int)>;
     using Type = ServiceProvider< EncoderType, BaseType>;
 
     template<typename ...TArgs>
     ServiceProvider( TArgs&&... args)
-        : BaseType(std::forward<TArgs>(args)...)
+        : BaseType(std::forward<TArgs>(args)...)//Invoker<EncoderType, BaseType, ServiceProvider<EncoderType, BaseType> >(std::forward<TArgs>(args)...)
     {
 
     }
     virtual ~ServiceProvider(){}
 
-
-    template<typename TConnectionType>
-    void bind(TConnectionType* connection)
-    {
-        // sendMsgDelegate = std::bind(&TConnectionType::sendMsg, connection, std::placeholders::_1, std::placeholders::_2);
-        // connection->setMsgHandler(std::bind(&ServiceProvider::handleMessage, this, std::placeholders::_1, std::placeholders::_2));
-        createSession(connection);
-
-    }
 
     template<typename R, typename C, typename ...ArgsT>
     void add(std::string&& name, C* objPtr, R(C::*memFunc)(ArgsT...) const)
@@ -244,25 +243,47 @@ public:
         this->add(std::forward<std::string>(name), std::move(handler));
     }
 
-protected:
-
     template<typename TConnectionType>
-    std::uintptr_t createSession( TConnectionType* newConnection)
+    SessionPtr createSession( TConnectionType* newConnection)
     {
-        auto sessionId = reinterpret_cast<std::uintptr_t>(newConnection);
         auto session = std::make_shared<Session>( this );
 
-        newConnection->setMsgHandler(std::bind(&Session::handleMessage, session.get(), std::placeholders::_1, std::placeholders::_2));
+        //session.bind( newConnection );
         session->sendMsgDelegate = std::bind(&TConnectionType::sendMsg, newConnection, std::placeholders::_1, std::placeholders::_2);
+        newConnection->setMsgHandler(std::bind(&Session::handleMessage, session.get(), std::placeholders::_1, std::placeholders::_2));
 
-        outstandingSessions.emplace( sessionId, std::move(session) );
-        return sessionId;
+
+        outstandingSessions.insert( session );
+        return session;
     }
-    template<typename TConnection>
-    void destroySession( TConnection* connection)
+
+    void destroySession( SessionPtr session )
     {
-        auto sessionId = reinterpret_cast<std::uintptr_t>(connection);
-        outstandingSessions.erase( sessionId );
+        outstandingSessions.erase( session );
+    }
+
+    template<typename TConnectionType>
+    void bind(TConnectionType* connection)
+    {
+        currentSession = createSession(connection);
+    }
+
+    template<typename R, typename... TArgs>
+    std::future<R> execute(std::string&& procName, TArgs&&... args )
+    {
+        return currentSession->execute<R>(std::forward<std::string>(procName), std::forward<TArgs>(args)...);
+    }
+
+    template<typename R, typename F, typename ...TArgs>
+    void invokeAsync(F&& callback, std::string&& procName, TArgs&&... args)
+    {
+        currentSession->invokeAsync<R>(std::forward<F>(callback), std::forward<std::string>(procName), std::forward<TArgs>(args)...);
+    }
+
+    template<typename... TArgs>
+    void notify(std::string&& procName, TArgs&&... args )
+    {
+        currentSession->notify(std::forward<std::string>(procName), std::forward<TArgs>(args)...);
 
     }
 
@@ -271,6 +292,7 @@ protected:
 private:
 
     friend EncoderType;
+
 
     // int handleMessage(const char* msg, int size)
     // {
@@ -311,22 +333,13 @@ private:
         }
     }
 
-    void error(const std::string& method, int id)
-    {
-
-    }
-
-    void error(const std::string& method)
-    {
-
-    }
-
 
 private:
     friend EncoderType;
 
     std::unordered_map<std::string, HandlerPtr> dispatchTable;
-    std::unordered_map<std::uintptr_t,SessionPtr> outstandingSessions;
+    std::unordered_set<SessionPtr> outstandingSessions;
+    SessionPtr currentSession;
 };
 
 

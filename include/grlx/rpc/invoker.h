@@ -51,11 +51,16 @@ namespace grlx
 namespace rpc
 {
 
-template<typename EncoderType, typename BaseType = Details::DummyBaseClass>
+template<typename EncoderType, typename BaseType = Details::DummyBaseClass, typename DerivedType = Details::None >
 class Invoker: public BaseType
 {
 
+    using SelfType = typename std::conditional<
+        std::is_same<DerivedType, Details::None>::value, Invoker, DerivedType
+        >::type;
+
 public:
+
 
     using Type = Invoker;
 
@@ -91,7 +96,7 @@ public:
                                   asyncOp->id(),
                                   std::forward<TArgs>(args)...);
 
-        EncoderType::encode(request, *this);
+        EncoderType::encode(request, static_cast<SelfType&>(*this));
 
         return promise->get_future();
 
@@ -113,7 +118,7 @@ public:
                                   asyncOp->id(),
                                   std::forward<TArgs>(args)...);
 
-        EncoderType::encode(request, *this);
+        EncoderType::encode(request, static_cast<SelfType&>(*this));
 
 
     }
@@ -124,7 +129,7 @@ public:
 
         Notification<TArgs...> notification(std::forward<std::string>(procName), std::forward<TArgs>(args)...);
 
-        EncoderType::encode(notification, *this);
+        EncoderType::encode(notification, static_cast<SelfType&>(*this));
 
     }
 
@@ -147,7 +152,7 @@ private:
 
     int handleResp(const char* msg, int size)
     {
-        EncoderType::decodeResp(msg, size, *this);
+        EncoderType::decodeResp(msg, size, static_cast<SelfType&>(*this));
         return 0;
     }
 
