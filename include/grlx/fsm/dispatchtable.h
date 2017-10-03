@@ -137,20 +137,9 @@ public:
 
     DispatchTable()
     {
-        //ForEach<typename GetStateList< Stt >::Type >( InitCellDefault<Event>(this, entries) );
-
-//        ForEach<typename SelectRowsWhereEvent< Stt, Any >::Result >( InitCell<Event>(this, entries));
-
-//        ForEach< Stt >( InitCell<Event>(this, entries));
-
-        //ForEach<typename SelectRowsWhereEvent< Stt, Event >::Result >( InitCell<Event>(this, entries));        
-
         InitCellDefault<Event, typename GetStateList< Stt >::Type >( this->entries );
         InitCell< Event, typename SelectRowsWhereEvent< Stt, Any >::Result >( this->entries );
         InitCell< Event, Stt >( this->entries );
-
-
-
     }
     HandleStatus::Type Exec(FSM& fsm, Event const& ev, int region, int state) const
     {

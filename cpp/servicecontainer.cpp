@@ -5,6 +5,15 @@
 
 namespace grlx {
 
+ServiceContainer::~ServiceContainer()
+{
+    objectMap.clear();
+
+    if(parent)
+        parent.reset();
+}
+
+
 ServiceContainerPtr ServiceContainerFactory::Create()
 {
     return ServiceContainerPtr(new ServiceContainer());

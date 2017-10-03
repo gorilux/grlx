@@ -66,8 +66,7 @@ private:
 
     class ServiceInfoBase
     {
-    public:
-        virtual ~ServiceInfoBase(){}
+    public:        
         virtual std::shared_ptr<void> ServiceInstance() = 0;
 
 
@@ -114,13 +113,7 @@ private:
 
 public:
 
-    virtual ~ServiceContainer()
-    {
-        objectMap.clear();
-
-        if(parent)
-            parent.reset();
-    }
+    virtual ~ServiceContainer();
 
     template<typename T>
     void AddService()

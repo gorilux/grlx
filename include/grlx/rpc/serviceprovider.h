@@ -271,13 +271,13 @@ public:
     template<typename R, typename... TArgs>
     std::future<R> execute(std::string&& procName, TArgs&&... args )
     {
-        return currentSession->execute<R>(std::forward<std::string>(procName), std::forward<TArgs>(args)...);
+        return currentSession->template execute<R>(std::forward<std::string>(procName), std::forward<TArgs>(args)...);
     }
 
     template<typename R, typename F, typename ...TArgs>
     void invokeAsync(F&& callback, std::string&& procName, TArgs&&... args)
     {
-        currentSession->invokeAsync<R>(std::forward<F>(callback), std::forward<std::string>(procName), std::forward<TArgs>(args)...);
+        currentSession->template invokeAsync<R>(std::forward<F>(callback), std::forward<std::string>(procName), std::forward<TArgs>(args)...);
     }
 
     template<typename... TArgs>
