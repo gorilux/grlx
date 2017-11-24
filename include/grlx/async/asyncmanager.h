@@ -36,6 +36,7 @@
 #include <unordered_map>
 #include <mutex>
 #include <list>
+#include <typeinfo>
 
 
 namespace grlx {
@@ -46,30 +47,6 @@ class AsyncManager;
 
 namespace Details {
 
-
-typedef long TypeId;
-
-
-template<class T>
-struct TypeInfo
-{
-    static TypeId id() { return reinterpret_cast<TypeId>( &inst() ); }
-private:
-    struct Impl{};
-    static Impl const & inst() { static Impl sImpl; return sImpl; }
-};
-
-template<class T>
-TypeId typeId()
-{
-    return TypeInfo<T>::id();
-}
-
-template<class T>
-TypeId typeId(T)
-{
-    return TypeInfo<T>::id();
-}
 
 
 
@@ -92,7 +69,7 @@ public:
         return _id;
     }
 
-    virtual int typeId() const = 0;
+    virtual const std::type_info& typeId() const = 0;
 
 
 protected:
@@ -136,9 +113,9 @@ public:
         this->_func(std::forward<TArgs>(result)...);
     }
 
-    int typeId() const override
+    const std::type_info& typeId() const override
     {
-        return Details::typeId<TFunc>();
+        return typeid(TFunc);
     }
 
     AsyncOperation(IDType&& id)
@@ -269,7 +246,7 @@ public:
 
         auto asyncOp = itr->second;
 
-        if(asyncOp->typeId() != Details::typeId< TFunc<TResult, TArgs...>>())
+        if(asyncOp->typeId() != typeid(TFunc<TResult, TArgs...>))
         {
             return typename AsyncOperation<IDType,  TFunc<TResult, TArgs...> >::Ptr();
         }

@@ -24,6 +24,7 @@
 /// @author David Salvador Pinheiro
 /// @author Copyright 2015, David Salvador Pinheiro
 ////////////////////////////////////////////////////////////////////////////////
+#pragma once
 #ifndef GRLX_RPC_INVOKER_H
 #define GRLX_RPC_INVOKER_H
 
@@ -141,13 +142,15 @@ private:
         sendMsgDelegate(msg,len);
     }
 
-    template<typename TResult>
-    void reply(int id, TResult const& result)
+
+    void reply(int id, typename EncoderType::ResultType const& result)
     {
-        auto asyncOp = asyncManager.getOperation<void, const TResult&>(id);
+        auto asyncOp = asyncManager.getOperation<void, typename EncoderType::ResultType const &>(id);
 
         if(asyncOp)
+        {
             asyncOp->complete(result);
+        }
     }
 
     int handleResp(const char* msg, int size)

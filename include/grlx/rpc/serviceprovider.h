@@ -197,7 +197,7 @@ public:
 
 
     template<typename R, typename C, typename ...ArgsT>
-    void add(std::string&& name, C* objPtr, R(C::*memFunc)(ArgsT...) const)
+    void attach(std::string&& name, C* objPtr, R(C::*memFunc)(ArgsT...) const)
     {
 
         using HandlerType = Handler<R(ArgsT...)>;
@@ -210,11 +210,11 @@ public:
         };
 
 
-        this->add(std::forward<std::string>(name), std::move(handler));
+        this->attach(std::forward<std::string>(name), std::move(handler));
     }
 
     template<typename R, typename C, typename ...ArgsT>
-    void add(std::string&& name, C* objPtr,  R(C::*memFunc)(ArgsT...))
+    void attach(std::string&& name, C* objPtr,  R(C::*memFunc)(ArgsT...))
     {
 
         using HandlerType = Handler<R(ArgsT...)>;
@@ -227,11 +227,11 @@ public:
         };
 
 
-        this->add(std::forward<std::string>(name), std::move(handler));
+        this->attach(std::forward<std::string>(name), std::move(handler));
     }
 
     template<typename TSignature>
-    void add(std::string&& name, std::function<TSignature>&& func)
+    void attach(std::string&& name, std::function<TSignature>&& func)
     {
 
         using HandlerType = Handler<TSignature>;
@@ -240,7 +240,7 @@ public:
 
         std::swap(handler->proc, func);
 
-        this->add(std::forward<std::string>(name), std::move(handler));
+        this->attach(std::forward<std::string>(name), std::move(handler));
     }
 
     template<typename TConnectionType>
@@ -306,7 +306,7 @@ private:
     // }
 
     template<typename Handler>
-    void add(std::string&& name, std::shared_ptr<Handler>&& handler)
+    void attach(std::string&& name, std::shared_ptr<Handler>&& handler)
     {
         dispatchTable.emplace(std::forward<std::string>(name), handler);
     }
