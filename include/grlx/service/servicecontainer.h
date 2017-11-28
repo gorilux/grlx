@@ -17,18 +17,14 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-#ifndef GRLX_SERVICECONTAINER_H
-#define	GRLX_SERVICECONTAINER_H
-
-
+#pragma once
 
 #include <string>
 #include <functional>
 #include <memory>
 #include <unordered_map>
-
-#include <grlx/tmpl/typeid.h>
+#include <typeinfo>
+#include <typeindex>
 
 
 
@@ -44,7 +40,7 @@ public:
 
 
 class ServiceContainer;
-typedef std::shared_ptr<ServiceContainer> ServiceContainerPtr;
+using ServiceContainerPtr = std::shared_ptr<ServiceContainer>;
 
 class ServiceContainer
 {
@@ -66,7 +62,7 @@ private:
 
     class ServiceInfoBase
     {
-    public:        
+    public:
         virtual std::shared_ptr<void> ServiceInstance() = 0;
 
 
@@ -116,71 +112,76 @@ public:
     virtual ~ServiceContainer();
 
     template<typename T>
-    void AddService()
+    void addService()
     {
         std::shared_ptr<ServiceInfoBase> serviceInfo( new InstanceHolderServiceInfo<T>( new T )  );
 
-        this->AddService(typeId<T>(), serviceInfo);
+        auto id = std::type_index(typeid(T));
+
+        this->addService(id, serviceInfo);
 
     }
     template<typename T>
-    void AddService( std::function< std::shared_ptr<T> () > serviceCreatorCallback )
+    void addService( std::function< std::shared_ptr<T> () > serviceCreatorCallback )
     {
         std::shared_ptr<ServiceInfoBase> serviceInfo( new DelayedContructionServiceInfo<T>( serviceCreatorCallback )  );
 
-        this->AddService(typeId<T>(), serviceInfo);
+        auto id = std::type_index(typeid(T));
+
+        this->addService(id, serviceInfo);
     }
     template<typename T, typename U>
-    void AddService(const std::shared_ptr<U>& serviceInstance)
+    void addService(const std::shared_ptr<U>& serviceInstance)
     {
         std::shared_ptr<ServiceInfoBase> serviceInfo( new InstanceHolderServiceInfo<T>( serviceInstance )  );
+        auto id = std::type_index(typeid(T));
 
-        this->AddService(typeId<T>(), serviceInfo);
+        this->addService(id, serviceInfo);
     }
     template<typename T, typename U>
-    void AddService(U* serviceInstance)
+    void addService(U* serviceInstance)
     {
-        this->AddService<T>(std::shared_ptr<T>(serviceInstance));
+        this->addService<T>(std::shared_ptr<T>(serviceInstance));
     }
 
     template<typename T>
-    std::shared_ptr<T> GetService()
+    std::shared_ptr<T> getService()
     {
-        TypeId id = typeId<T>();
+        auto id = std::type_index(typeid(T));
         TypeInfoMap::iterator itr = objectMap.find(id);
 
         if(itr == objectMap.end()){
             if(!parent)
                 return std::shared_ptr<T>();
 
-            return parent->GetService<T>();
+            return parent->getService<T>();
         }
 
         return std::static_pointer_cast<T>( itr->second->ServiceInstance() );
     }
     template<typename T>
-    std::shared_ptr<T> Get()
+    std::shared_ptr<T> get()
     {
-        return GetService<T>();
+        return getService<T>();
     }
 
     template<typename T>
-    void RemoveService()
+    void removeService()
     {
-        TypeId id = typeId<T>();
+        auto id = std::type_index(typeid(T));
         objectMap.erase(id);
     }
     template<typename T>
-    bool HasService()
+    bool hasService()
     {
-        return (objectMap.find(typeId<T>()) != objectMap.end());
+        return (objectMap.find(std::type_index(typeid(T))) != objectMap.end());
     }
 
 
 
 private:
 
-    void AddService( grlx::TypeId id, const std::shared_ptr<ServiceInfoBase>& serviceInfoBase)
+    void addService(const std::type_index& id, const std::shared_ptr<ServiceInfoBase>& serviceInfoBase)
     {
         if(objectMap.find(id) != objectMap.end())
         {
@@ -191,7 +192,7 @@ private:
 
 private:
 
-    typedef std::unordered_map<grlx::TypeId, std::shared_ptr<ServiceInfoBase> > TypeInfoMap;
+    using TypeInfoMap = std::unordered_map<std::type_index, std::shared_ptr<ServiceInfoBase> > ;
     ServiceContainerPtr parent;
 
     mutable TypeInfoMap objectMap;
@@ -204,12 +205,10 @@ class ServiceContainerFactory
 {
 public:
 
-    static ServiceContainerPtr Create();
+    static ServiceContainerPtr create();
 
-    static ServiceContainerPtr Create(const ServiceContainerPtr& parent);
+    static ServiceContainerPtr create(const ServiceContainerPtr& parent);
 };
 
 
 }
-
-#endif	/* SERVICECONTAINER_H */

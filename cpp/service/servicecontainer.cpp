@@ -14,12 +14,12 @@ ServiceContainer::~ServiceContainer()
 }
 
 
-ServiceContainerPtr ServiceContainerFactory::Create()
+ServiceContainerPtr ServiceContainerFactory::create()
 {
     return ServiceContainerPtr(new ServiceContainer());
 }
 
-ServiceContainerPtr ServiceContainerFactory::Create(const ServiceContainerPtr & parent)
+ServiceContainerPtr ServiceContainerFactory::create(const ServiceContainerPtr & parent)
 {
     return ServiceContainerPtr(new ServiceContainer(parent));
 }

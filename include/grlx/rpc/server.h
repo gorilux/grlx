@@ -1,3 +1,5 @@
+#pragma once
+
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief
 ///
@@ -24,14 +26,14 @@
 /// @author David Salvador Pinheiro
 /// @author Copyright 2015, David Salvador Pinheiro
 ////////////////////////////////////////////////////////////////////////////////
-#ifndef GRLX_RPC_SERVER_H
-#define GRLX_RPC_SERVER_H
+
 
 #include <memory>
 #include <unordered_map>
 #include <type_traits>
 
-#include "connection.h"
+#include <zmq.hpp>
+
 #include "serviceprovider.h"
 
 namespace grlx {
@@ -55,81 +57,53 @@ public:
 
     static const bool value = sizeof(test<T>(0)) == sizeof(yes);
 };
-
-
-
 }
 
 
-template<typename EncoderType, typename TransportType >
-class Server : public ServiceProvider< EncoderType , typename TransportType::template ServerImpl< Server< EncoderType , TransportType> > >::Type
+template<typename EncoderType>
+class Server : public ServiceProvider< EncoderType >
 {
-
-    using BaseType = typename ServiceProvider< EncoderType, typename TransportType::template ServerImpl< Server< EncoderType, TransportType> > >::Type;
-    using Impl = typename TransportType::template ServerImpl< Server< EncoderType , TransportType> >;
-
 public:
-    using Type = Server;
-    using ConnectionType = typename Connection<typename BaseType::ConnectionType>::Type;
-    using CreateServiceDelegate = std::function< std::shared_ptr< ServiceProvider<EncoderType> >() >;
 
-    template<typename ...TArgs>
-    Server(TArgs&&... args)
-        : BaseType(std::forward<TArgs>(args)...),
-          disposing(false)
+    Server(grlx::ServiceContainerPtr serviceContainer)
+        :serviceContainer(serviceContainer)
     {
-
-    }
-
-    ~Server()
-    {
-        disposing = true;
-
-        dispose();
-    }
-private:
-    friend Impl;
-    friend ConnectionType;
-
-    void disconnected(std::shared_ptr<ConnectionType> const& connection)
-    {
-        if(disposing)
-            return;
-    }
-    void dispose()
-    {
-        for(auto connection: outstandingConnections)
+        if( !serviceContainer->hasService<zmq::context_t>() )
         {
-            connection->close();
+            serviceContainer->addService<zmq::context_t>([]()
+            {
+                return std::make_shared<zmq::context_t>(std::thread::hardware_concurrency());
+            });
         }
     }
 
-    bool accept(std::shared_ptr<ConnectionType> const& newConnection)
+    Server()
+        :Server(ServiceContainerFactory::create())
     {
-
-        this->bind(newConnection.get());
-
-        outstandingConnections.push_back( newConnection );
-
-        return true;
     }
 
-    void handleClosed()
+
+    virtual ~Server()
     {
-        outstandingConnections.clear();
     }
+
+
+    void bind(std::string const& addr)
+    {
+
+    }
+
+    void disconnect()
+    {
+    }
+
+
 
 private:
-
-    std::list< std::shared_ptr<ConnectionType> > outstandingConnections;
-    bool disposing;
-
-
+    grlx::ServiceContainerPtr serviceContainer;
 
 
 };
 
 } // namespace rpc
 } // namespace grlx
-
-#endif // GRLX_RPC_SERVER_H

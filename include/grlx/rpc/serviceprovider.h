@@ -99,7 +99,10 @@ private:
 
             dispatch(session, params, func);
 
-            EncoderType::encode(reply, *session);
+            EncoderType::encode(reply, [session](const char* data, size_t size)
+            {
+                session->send(data,size);
+            });
 
         }
 
@@ -111,7 +114,10 @@ private:
 
             reply.result = dispatch(session, params, func);
 
-            EncoderType::encode(reply, *session);
+            EncoderType::encode(reply, [session](const char* data, size_t size)
+            {
+                session->send(data,size);
+            });
         }
 
         void operator ()(SessionPtr session, const int* id, typename EncoderType::ParamsType const& params)
@@ -148,7 +154,6 @@ public:
         void exec(const std::string& method, int id, TParams const& params)
         {
             serviceProvider->exec( this->shared_from_this(), method, id, params);
-
         }
 
         template<typename TParams>
@@ -173,7 +178,7 @@ public:
             return 0;
         }
 
-        void send(const char* msg, int size)
+        void send(const char* msg, size_t size)
         {
             sendMsgDelegate(msg,size);
         }

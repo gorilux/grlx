@@ -76,7 +76,6 @@ public:
     template<typename TConnectionType>
     void bind(TConnectionType* connection)
     {
-        sendMsgDelegate = std::bind(&TConnectionType::sendMsg, connection, std::placeholders::_1, std::placeholders::_2);
         connection->setMsgHandler(std::bind(&Invoker::handleResp, this, std::placeholders::_1, std::placeholders::_2));
     }
 
@@ -97,7 +96,10 @@ public:
                                   asyncOp->id(),
                                   std::forward<TArgs>(args)...);
 
-        EncoderType::encode(request, static_cast<SelfType&>(*this));
+        EncoderType::encode(request, [&](const char* data, size_t size)
+        {
+            this->send(data,size);
+        });
 
         return promise->get_future();
 
@@ -119,7 +121,10 @@ public:
                                   asyncOp->id(),
                                   std::forward<TArgs>(args)...);
 
-        EncoderType::encode(request, static_cast<SelfType&>(*this));
+        EncoderType::encode(request, [&](const char* data, size_t size)
+        {
+            this->send(data,size);
+        });
 
 
     }
@@ -130,17 +135,24 @@ public:
 
         Notification<TArgs...> notification(std::forward<std::string>(procName), std::forward<TArgs>(args)...);
 
-        EncoderType::encode(notification, static_cast<SelfType&>(*this));
+        EncoderType::encode(notification, [&](const char* data, size_t size)
+        {
+            this->send(data,size);
+        });
 
+    }
+
+protected:
+    virtual void send(const char* msg, size_t len) = 0;
+
+    int handleResp(const char* msg, int size)
+    {
+        EncoderType::decodeResp(msg, size, static_cast<SelfType&>(*this));
+        return 0;
     }
 
 private:
     friend EncoderType;
-
-    void send(const char* msg, int len)
-    {
-        sendMsgDelegate(msg,len);
-    }
 
 
     void reply(int id, typename EncoderType::ResultType const& result)
@@ -153,15 +165,8 @@ private:
         }
     }
 
-    int handleResp(const char* msg, int size)
-    {
-        EncoderType::decodeResp(msg, size, static_cast<SelfType&>(*this));
-        return 0;
-    }
-
 private:
     AsyncManager<int> asyncManager;
-    std::function<int(const char*, int)> sendMsgDelegate;
 
 };
 
