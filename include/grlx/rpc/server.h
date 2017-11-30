@@ -32,75 +32,63 @@
 #include <unordered_map>
 #include <type_traits>
 
-#include <zmq.hpp>
-
 #include "serviceprovider.h"
 
-namespace grlx {
-namespace rpc {
-namespace details {
-
-template<typename T>
-class IsDefaultConstructible
+namespace grlx
+{
+namespace rpc
 {
 
-    typedef char yes;
-    typedef struct { char arr[2]; } no;
 
-    template<typename U>
-    static decltype(U(), yes()) test(int);
-
-    template<typename>
-    static no test(...);
+template<typename EncoderType, typename Transport>
+class Server : public ServiceProvider<EncoderType, Details::DummyBaseClass >
+{
 
 public:
 
-    static const bool value = sizeof(test<T>(0)) == sizeof(yes);
-};
-}
+    using TransportType = typename Transport::ServerType;
 
-
-template<typename EncoderType>
-class Server : public ServiceProvider< EncoderType >
-{
-public:
-
-    Server(grlx::ServiceContainerPtr serviceContainer)
-        :serviceContainer(serviceContainer)
+    Server(ServiceContainerPtr serviceContainer)
+        : transport( new TransportType( serviceContainer ))
     {
-        if( !serviceContainer->hasService<zmq::context_t>() )
-        {
-            serviceContainer->addService<zmq::context_t>([]()
-            {
-                return std::make_shared<zmq::context_t>(std::thread::hardware_concurrency());
-            });
-        }
+        hookEvents();
     }
 
     Server()
-        :Server(ServiceContainerFactory::create())
+        : Server(ServiceContainerFactory::create())
     {
     }
-
-
     virtual ~Server()
     {
+        this->disconnect();
     }
-
-
     void bind(std::string const& addr)
     {
+        transport->bind(addr);
 
     }
-
     void disconnect()
     {
+        transport->disconnect();
+    }
+protected:
+
+    void send(const char* data, size_t len) override
+    {
+        transport->send(data,len);
     }
 
+private:
+    void hookEvents()
+    {
+        transport->MsgReceived.Attach(std::bind(&Server::handleMessage, this, std::placeholders::_1, std::placeholders::_2));
+    }
 
 
 private:
-    grlx::ServiceContainerPtr serviceContainer;
+
+    std::unique_ptr<TransportType> transport;
+
 
 
 };

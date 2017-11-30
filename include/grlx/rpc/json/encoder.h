@@ -440,7 +440,7 @@ public:
 
 
     template<typename InputStream, typename ServiceProviderType>
-    static bool decode(InputStream& is, ServiceProviderType& serviceProvider)
+    static bool decodeReq(InputStream& is, ServiceProviderType& serviceProvider)
     {
 
         rapidjson::Document document;
@@ -498,19 +498,19 @@ public:
 
         }
 
-        itr = document.FindMember("result");
-        if(itr != document.MemberEnd())
-        {
-            auto& resultsRef = itr->value;
+        // itr = document.FindMember("result");
+        // if(itr != document.MemberEnd())
+        // {
+        //     auto& resultsRef = itr->value;
 
-            itr = document.FindMember("id");
-            if(itr != document.MemberEnd())
-            {
-                auto& idRef = itr->value;
-                serviceProvider.reply(idRef.GetInt(), resultsRef);
-                return true;
-            }
-        }
+        //     itr = document.FindMember("id");
+        //     if(itr != document.MemberEnd())
+        //     {
+        //         auto& idRef = itr->value;
+        //         serviceProvider.reply(idRef.GetInt(), resultsRef);
+        //         return true;
+        //     }
+        // }
 
         return true;
     }
@@ -547,11 +547,11 @@ public:
     }
 
     template<typename Ch, typename HandlerType>
-    static bool decode(Ch* buffer, int size, HandlerType& handler)
+    static bool decodeReq(Ch* buffer, int size, HandlerType& handler)
     {
         rapidjson::MemoryStream inputStream(buffer, size);
 
-        return decode(inputStream, handler);
+        return decodeReq(inputStream, handler);
     }
 
     template<typename Ch, typename HandlerType>

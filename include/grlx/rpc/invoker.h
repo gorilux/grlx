@@ -73,11 +73,6 @@ public:
     }
     virtual ~Invoker(){}
 
-    template<typename TConnectionType>
-    void bind(TConnectionType* connection)
-    {
-        connection->setMsgHandler(std::bind(&Invoker::handleResp, this, std::placeholders::_1, std::placeholders::_2));
-    }
 
     template<typename R, typename... TArgs>
     std::future<R> execute(std::string&& procName, TArgs&&... args )
@@ -139,16 +134,14 @@ public:
         {
             this->send(data,size);
         });
-
     }
 
 protected:
     virtual void send(const char* msg, size_t len) = 0;
 
-    int handleResp(const char* msg, int size)
+    void handleResp(const char* msg, size_t size)
     {
         EncoderType::decodeResp(msg, size, static_cast<SelfType&>(*this));
-        return 0;
     }
 
 private:

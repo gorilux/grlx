@@ -50,7 +50,7 @@ public:
     Key Attach( Slot&& slot )
     {
         std::lock_guard<std::mutex> lock(mutex);
-        connections.insert( slotId++, std::forward<Slot>(slot) );
+        connections.insert( std::make_pair(slotId++, std::forward<Slot>(slot)) );
         return slotId;
     }
 
