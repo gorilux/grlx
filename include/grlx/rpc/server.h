@@ -46,7 +46,7 @@ class Server : public ServiceProvider<EncoderType, Details::DummyBaseClass >
 
 public:
 
-    using TransportType = typename Transport::ServerType;
+    using TransportType =  Transport;
 
     Server(ServiceContainerPtr serviceContainer)
         : transport( new TransportType( serviceContainer ))
@@ -60,16 +60,16 @@ public:
     }
     virtual ~Server()
     {
-        this->disconnect();
+        this->close();
     }
-    void bind(std::string const& addr)
+    void open(std::string const& addr)
     {
-        transport->bind(addr);
+        transport->open(addr);
 
     }
-    void disconnect()
+    void close()
     {
-        transport->disconnect();
+        transport->close();
     }
 protected:
 

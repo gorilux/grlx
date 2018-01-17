@@ -29,6 +29,7 @@
 #include <memory>
 #include <vector>
 #include <mutex>
+#include <thread>
 #include <condition_variable>
 
 #include <zmq.hpp>
@@ -41,7 +42,9 @@
 
 namespace grlx {
 
-namespace zeromq
+namespace rpc {
+
+namespace ZeroMQ
 {
 
 
@@ -201,14 +204,51 @@ private:
 };
 
 
-class Client
+
+
+template<bool Bindable>
+class ZMQSocketImpl
 {
+
+protected:
+
+    void open(zmq::socket_t* socket, std::string const& addr)
+    {
+        socket->bind(addr);
+    }
+    void close(zmq::socket_t* socket, std::string const& addr)
+    {
+        socket->unbind(addr);
+    }
+};
+
+template<>
+class ZMQSocketImpl<false>
+{
+protected:
+    void open(zmq::socket_t* socket, std::string const& addr)
+    {
+        socket->connect(addr);
+    }
+    void close(zmq::socket_t* socket, std::string const& addr)
+    {
+        socket->disconnect(addr);
+    }
+
+};
+
+
+template<zmq::socket_type SocketType, bool IsServer>
+class ZMQSocket : public ZMQSocketImpl<IsServer>
+{
+private:
+    using Impl = ZMQSocketImpl<IsServer>;
 public:
     using PollerType = Poller;
 
     grlx::Signal<void(const char*, size_t)> MsgReceived;
 
-    Client( grlx::ServiceContainerPtr serviceContainer)
+    ZMQSocket( grlx::ServiceContainerPtr serviceContainer)
         : serviceContainer( serviceContainer)
     {
         if( !serviceContainer->hasService<zmq::context_t>() )
@@ -226,28 +266,24 @@ public:
             });
         }
     }
-    Client()
-        :Client( grlx::ServiceContainerFactory::create() )
+
+    virtual ~ZMQSocket()
     {
+        this->close();
     }
 
-    virtual ~Client()
-    {
-        this->disconnect();
-    }
-
-    void connect(std::string const& addr)
+    void open(std::string const& addr)
     {
         this->addr = addr;
 
         zmq_ctx = serviceContainer->get<zmq::context_t>();
 
         if( zmq_socket )
-            disconnect();
+            close();
 
-        zmq_socket.reset( new zmq::socket_t( *zmq_ctx, ZMQ_REQ ));
+        zmq_socket.reset( new zmq::socket_t( *zmq_ctx, SocketType ));
 
-        zmq_socket->connect(addr);
+        Impl::open(zmq_socket.get(), addr);
 
         auto poller = serviceContainer->get<PollerType>();
 
@@ -255,15 +291,12 @@ public:
         {
             zmq::message_t msg;
             socket->recv(&msg);
-            std::cout << "C[IN]:";
-            std::cout.write(static_cast<const char*>(msg.data()),msg.size());
-            std::cout << std::endl;
             this->MsgReceived.Emit(static_cast<const char*>(msg.data()), msg.size());
         });
 
     }
 
-    void disconnect()
+    void close()
     {
         if(!zmq_socket)
             return;
@@ -271,108 +304,15 @@ public:
         auto poller = serviceContainer->get<PollerType>();
 
         poller->remove(zmq_socket.get());
-        zmq_socket->disconnect(addr);
+
+        Impl::close(zmq_socket.get(), addr);
+
         zmq_socket.reset();
     }
 
     void send( const char* data, size_t size )
     {
-        std::cout << "C[OUT]:";
-        std::cout.write(data,size);
-        std::cout << std::endl;
         zmq::message_t msg(data, size);
-
-        zmq_socket->send(msg);
-    }
-
-private:
-
-    grlx::ServiceContainerPtr serviceContainer;
-    std::shared_ptr<zmq::context_t> zmq_ctx;
-    std::unique_ptr<zmq::socket_t> zmq_socket;
-    std::string addr;
-
-};
-
-class Server
-{
-public:
-    using PollerType = Poller;
-
-    grlx::Signal<void(const char*, size_t)> MsgReceived;
-
-    Server( grlx::ServiceContainerPtr serviceContainer)
-        : serviceContainer( serviceContainer)
-    {
-        if( !serviceContainer->hasService<zmq::context_t>() )
-        {
-            serviceContainer->addService<zmq::context_t>([]()
-            {
-                return std::make_shared<zmq::context_t>(std::thread::hardware_concurrency());
-            });
-        }
-        if( !serviceContainer->hasService< PollerType > ())
-        {
-            serviceContainer->addService<PollerType>([]()
-            {
-                return std::make_shared<PollerType>();
-            });
-        }
-    }
-    Server()
-        :Server( grlx::ServiceContainerFactory::create() )
-    {
-    }
-
-    virtual ~Server()
-    {
-        this->disconnect();
-    }
-
-    void bind(std::string const& addr)
-    {
-        this->addr = addr;
-        zmq_ctx = serviceContainer->get<zmq::context_t>();
-
-        if( zmq_socket )
-            disconnect();
-
-        zmq_socket.reset( new zmq::socket_t( *zmq_ctx, ZMQ_REP ));
-
-        zmq_socket->bind(addr);
-
-        auto poller = serviceContainer->get<PollerType>();
-
-        poller->add(zmq_socket.get(), ZMQ_POLLIN, [this](zmq::socket_t* socket)
-        {
-            zmq::message_t msg;
-            socket->recv(&msg);
-            std::cout << "S[IN]:";
-            std::cout.write(static_cast<const char*>(msg.data()),msg.size());
-            std::cout << std::endl;
-            this->MsgReceived.Emit(static_cast<const char*>(msg.data()), msg.size());
-        });
-
-    }
-
-    void disconnect()
-    {
-        if(!zmq_socket)
-            return;
-
-        auto poller = serviceContainer->get<PollerType>();
-        poller->remove(zmq_socket.get());
-        zmq_socket->unbind(addr);
-        zmq_socket.reset();
-    }
-
-    void send( const char* data, size_t size )
-    {
-        std::cout << "S[OUT]:";
-        std::cout.write(data,size);
-        std::cout << std::endl;
-        zmq::message_t msg(data, size);
-
         zmq_socket->send(msg);
     }
 
@@ -387,17 +327,15 @@ private:
 
 
 
+using SocketType = zmq::socket_type;
+
+template<SocketType SockT, bool IsServer>
+using Socket = ZMQSocket<SockT,IsServer>;
 
 } // zeromq
 
-namespace rpc
-{
 
-struct ZeroMQ
-{
-    using ServerType = zeromq::Server;
-    using ClientType = zeromq::Client;
-};
-}
+} // rpc
+
 
 }

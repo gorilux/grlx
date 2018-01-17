@@ -53,11 +53,19 @@ template<typename EncoderType, typename BaseType = Details::DummyBaseClass>
 class ServiceProvider : public BaseType
 {
 
-public:
-
-
-
 private:
+
+    template<typename T>
+    struct DeduceLambdaSignature
+    {
+        using type = void;
+    };
+
+    template<typename Ret, typename Class, typename... Args>
+    struct DeduceLambdaSignature<Ret(Class::*)(Args...) const>
+    {
+        using type = std::function<Ret(Args...)>;
+    };
 
     struct HandlerBase
     {
@@ -135,57 +143,6 @@ private:
 
 public:
 
-    // class Session : public Invoker<  EncoderType, std::enable_shared_from_this<Session>, Session>
-    // {
-
-    //     friend ServiceProvider;
-    //     friend EncoderType;
-    // public:
-    //     Session(ServiceProvider* serviceProvider)
-    //         : serviceProvider(serviceProvider)
-    //     {
-    //     }
-    // protected:
-
-
-    //     template<typename TParams>
-    //     void exec(const std::string& method, int id, TParams const& params)
-    //     {
-    //         serviceProvider->exec( this->shared_from_this(), method, id, params);
-    //     }
-
-    //     template<typename TParams>
-    //     void exec(const std::string& method, TParams const& params)
-    //     {
-    //         serviceProvider->exec( this->shared_from_this(), method, params);
-    //     }
-
-    //     void error(const std::string& method, int id)
-    //     {
-
-    //     }
-
-    //     void error(const std::string& method)
-    //     {
-
-    //     }
-
-    //     int handleMessage(const char* msg, int size)
-    //     {
-    //         EncoderType::decode(msg, size, *this);
-    //         return 0;
-    //     }
-
-    //     void send(const char* msg, size_t size)
-    //     {
-    //         sendMsgDelegate(msg,size);
-    //     }
-
-
-    //     ServiceProvider* serviceProvider;
-    //     MsgHandler sendMsgDelegate;
-
-    // };
 
     using DataHandler = std::function<int(const char*, int)>;
     using Type = ServiceProvider< EncoderType, BaseType>;
@@ -246,24 +203,12 @@ public:
         this->attach(std::forward<std::string>(name), std::move(handler));
     }
 
-    // template<typename TConnectionType>
-    // SessionPtr createSession( TConnectionType* newConnection)
-    // {
-    //     auto session = std::make_shared<Session>( this );
+    template<typename F>
+    void attach(std::string&& name, F&& func)
+    {
+        attach(std::move(name), typename DeduceLambdaSignature<decltype(&F::operator())>::type(func));
+    }
 
-    //     //session.bind( newConnection );
-    //     session->sendMsgDelegate = std::bind(&TConnectionType::sendMsg, newConnection, std::placeholders::_1, std::placeholders::_2);
-    //     newConnection->setMsgHandler(std::bind(&Session::handleMessage, session.get(), std::placeholders::_1, std::placeholders::_2));
-
-
-    //     outstandingSessions.insert( session );
-    //     return session;
-    // }
-
-    // void destroySession( SessionPtr session )
-    // {
-    //     outstandingSessions.erase( session );
-    // }
 
 protected:
     virtual void send(const char* data, size_t size) = 0;

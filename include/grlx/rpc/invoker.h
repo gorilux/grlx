@@ -1,3 +1,4 @@
+#pragma once
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief
 ///
@@ -24,7 +25,7 @@
 /// @author David Salvador Pinheiro
 /// @author Copyright 2015, David Salvador Pinheiro
 ////////////////////////////////////////////////////////////////////////////////
-#pragma once
+
 #ifndef GRLX_RPC_INVOKER_H
 #define GRLX_RPC_INVOKER_H
 
@@ -74,8 +75,35 @@ public:
     virtual ~Invoker(){}
 
 
+    // template<typename R, typename... TArgs>
+    // std::future<R> execute(std::string&& procName, TArgs&&... args )
+    // {
+    //     auto promise = std::make_shared<std::promise<R>>();
+
+    //     auto asyncOp = asyncManager.createOperation(
+    //         [promise](typename EncoderType::ResultType const& result)
+    //         {
+    //             R res;
+    //             EncoderType::decodeType(result, res);
+    //             promise->set_value(res);
+    //         });
+
+    //     Request<TArgs...> request(std::forward<std::string>(procName),
+    //                               asyncOp->id(),
+    //                               std::forward<TArgs>(args)...);
+
+    //     EncoderType::encode(request, [&](const char* data, size_t size)
+    //     {
+    //         this->send(data,size);
+    //     });
+
+    //     return promise->get_future();
+
+    // }
+
     template<typename R, typename... TArgs>
-    std::future<R> execute(std::string&& procName, TArgs&&... args )
+    auto execute(std::string&& procName, TArgs&&... args )
+            -> typename std::enable_if<!std::is_void<R>::value, std::future<R> >::type
     {
         auto promise = std::make_shared<std::promise<R>>();
 
@@ -100,8 +128,34 @@ public:
 
     }
 
+    template<typename R, typename... TArgs>
+    auto execute(std::string&& procName, TArgs&&... args )
+            -> typename std::enable_if<std::is_void<R>::value, std::future<void> >::type
+    {
+        auto promise = std::make_shared<std::promise<void>>();
+
+        auto asyncOp = asyncManager.createOperation(
+            [promise](typename EncoderType::ResultType const& result)
+            {
+                promise->set_value();
+            });
+
+        Request<TArgs...> request(std::forward<std::string>(procName),
+                                  asyncOp->id(),
+                                  std::forward<TArgs>(args)...);
+
+        EncoderType::encode(request, [&](const char* data, size_t size)
+        {
+            this->send(data,size);
+        });
+
+        return promise->get_future();
+
+    }
+
     template<typename R, typename F, typename ...TArgs>
-    void invokeAsync(F&& callback, std::string&& procName, TArgs&&... args)
+    typename std::enable_if<!std::is_void<R>::value>::type
+    invokeAsync(F&& callback, std::string&& procName, TArgs&&... args)
     {
 
         auto asyncOp = asyncManager.createOperation(
@@ -110,6 +164,29 @@ public:
                 R res;
                 EncoderType::decodeType(result, res);
                 f( res );
+            });
+
+        Request<TArgs...> request(std::forward<std::string>(procName),
+                                  asyncOp->id(),
+                                  std::forward<TArgs>(args)...);
+
+        EncoderType::encode(request, [&](const char* data, size_t size)
+        {
+            this->send(data,size);
+        });
+
+
+    }
+
+    template<typename R, typename F, typename ...TArgs>
+    typename std::enable_if<std::is_void<R>::value>::type
+    invokeAsync(F&& callback, std::string&& procName, TArgs&&... args)
+    {
+
+        auto asyncOp = asyncManager.createOperation(
+            [f = std::move(callback) ](typename EncoderType::ResultType const& result)
+            {
+                f();
             });
 
         Request<TArgs...> request(std::forward<std::string>(procName),

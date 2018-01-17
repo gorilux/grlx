@@ -157,7 +157,7 @@ namespace Convert
 template<typename InputIterator, typename OutputIterator>
 void toHex(InputIterator begin, InputIterator end, OutputIterator result, bool lowerCase = false)
 {
-    constexpr auto hexDigits = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
+    static constexpr auto hexDigits = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
 
     for(InputIterator itr = begin; itr != end; ++itr )
     {

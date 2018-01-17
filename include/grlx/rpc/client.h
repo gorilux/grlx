@@ -47,7 +47,7 @@ class Client : public Invoker<EncoderType, Details::DummyBaseClass >
 {
 
 public:
-    using TransportType = typename Transport::ClientType;
+    using TransportType = Transport;
 
     Client(ServiceContainerPtr serviceContainer)
         : transport( new TransportType( serviceContainer ))
@@ -61,16 +61,16 @@ public:
     }
     virtual ~Client()
     {
-        this->disconnect();
+        this->close();
     }
-    void connect(std::string const& addr)
+    void open(std::string const& addr)
     {
-        transport->connect(addr);
+        transport->open(addr);
 
     }
-    void disconnect()
+    void close()
     {
-        transport->disconnect();
+        transport->close();
     }
 protected:
 
