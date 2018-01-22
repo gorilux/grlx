@@ -108,7 +108,7 @@ public:
         auto promise = std::make_shared<std::promise<R>>();
 
         auto asyncOp = asyncManager.createOperation(
-            [promise](typename EncoderType::ResultType const& result)
+            [promise](typename EncoderType::ResultType& result)
             {
                 R res;
                 EncoderType::decodeType(result, res);
@@ -135,7 +135,7 @@ public:
         auto promise = std::make_shared<std::promise<void>>();
 
         auto asyncOp = asyncManager.createOperation(
-            [promise](typename EncoderType::ResultType const& result)
+            [promise](typename EncoderType::ResultType& result)
             {
                 promise->set_value();
             });
@@ -159,7 +159,7 @@ public:
     {
 
         auto asyncOp = asyncManager.createOperation(
-            [f = std::move(callback) ](typename EncoderType::ResultType const& result)
+            [f = std::move(callback) ](typename EncoderType::ResultType& result)
             {
                 R res;
                 EncoderType::decodeType(result, res);
@@ -225,9 +225,9 @@ private:
     friend EncoderType;
 
 
-    void reply(int id, typename EncoderType::ResultType const& result)
+    void reply(int id, typename EncoderType::ResultType& result)
     {
-        auto asyncOp = asyncManager.getOperation<void, typename EncoderType::ResultType const &>(id);
+        auto asyncOp = asyncManager.getOperation<void, typename EncoderType::ResultType &>(id);
 
         if(asyncOp)
         {

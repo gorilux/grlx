@@ -29,6 +29,7 @@
 
 #include <string>
 #include <tuple>
+#include <cereal/cereal.hpp>
 #include "types.h"
 
 namespace grlx {
@@ -50,6 +51,15 @@ struct Request
     int id;
     ArgsType    args;
 
+    // template<typename Archive>
+    // void serialize(Archive & ar)
+    // {
+    //     ar(cereal::make_nvp("id", id ));
+    //     ar(cereal::make_nvp("method", method ));
+    //     ar(cereal::make_nvp("params", args ));
+    //
+    //}
+
 };
 
 
@@ -59,12 +69,24 @@ struct Reply
     int id;
     TResult result;
 
+    // template<typename Archive>
+    // void serialize(Archive & ar)
+    // {
+    //     ar(cereal::make_nvp("id", id ));
+    //     ar(cereal::make_nvp("result", result ));
+    // }
 };
 
 template<>
 struct Reply<void>
 {
     int id;
+
+    // template<typename Archive>
+    // void serialize(Archive & ar)
+    // {
+    //     ar(cereal::make_nvp("id", id ));
+    // }
 };
 
 
@@ -79,6 +101,13 @@ struct Notification
 
     std::string method;
     ArgsType    args;
+
+    // template<typename Archive>
+    // void serialize(Archive & ar)
+    // {
+    //     ar(cereal::make_nvp("method", method ));
+    //     ar(cereal::make_nvp("params", args ));
+    // }
 
 };
 

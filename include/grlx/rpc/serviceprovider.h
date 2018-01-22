@@ -71,7 +71,7 @@ private:
     {
         HandlerBase(ServiceProvider* self) : _self(self){}
 
-        virtual void operator()(const int* id, typename EncoderType::ParamsType const&  params) = 0;
+        virtual void operator()(const int* id, typename EncoderType::ParamsType&  params) = 0;
 
         ServiceProvider *_self;
     };
@@ -126,7 +126,7 @@ private:
             });
         }
 
-        void operator ()(const int* id, typename EncoderType::ParamsType const& params)
+        void operator ()(const int* id, typename EncoderType::ParamsType& params)
         {
             if( id == nullptr)
             {
@@ -231,7 +231,7 @@ private:
     }
 
     template<typename TParams>
-    void exec(const std::string& method, int id, TParams const& params)
+    void exec(const std::string& method, int id, TParams& params)
     {
         auto itr = dispatchTable.find(method);
         if(itr != dispatchTable.end())
@@ -242,7 +242,7 @@ private:
     }
 
     template<typename TParams>
-    void exec(const std::string& method, TParams const& params)
+    void exec(const std::string& method, TParams& params)
     {
         auto itr = dispatchTable.find(method);
         if(itr != dispatchTable.end())
