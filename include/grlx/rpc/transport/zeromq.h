@@ -28,11 +28,15 @@
 
 #include <memory>
 #include <vector>
+#include <list>
 #include <mutex>
 #include <thread>
-#include <condition_variable>
+
+
 
 #include <zmq.hpp>
+
+#include "zmq/poller.h"
 
 #include <grlx/tmpl/signal.h>
 #include <grlx/service/servicecontainer.h>
@@ -47,176 +51,16 @@ namespace rpc {
 namespace ZeroMQ
 {
 
-
-class Poller
-{
-public:
-    using HandlerType = std::function<void(zmq::socket_t* socket)>;
-
-    Poller()
-        : disposing(false),
-          pollThread( std::bind(&Poller::poll, this ))
-    {
-
-    }
-
-    ~Poller ()
-    {
-        {
-            std::unique_lock<std::mutex> lock(mtx);
-            disposing = true;
-            cv.notify_all();
-        }
-
-        if(pollThread.joinable())
-            pollThread.join();
-
-    }
-
-    void add(zmq::socket_t* socket, short events, HandlerType handler)
-    {
-        std::unique_lock<std::mutex> lock(mtx);
-        sockets[static_cast<void*>(*socket)] = std::make_pair(socket,handler);
-        cv.notify_one();
-    }
-
-    void remove(zmq::socket_t *socket)
-    {
-        {
-            std::unique_lock<std::mutex> lock(mtx);
-            sockets.erase( static_cast<void*>(*socket) );
-            cv.notify_one();
-        }
-        {
-            std::unique_lock<std::mutex> lock(pollingMtx);
-            if(!pollItems.empty())
-                pollingFinished.wait(lock);
-        }
-
-    }
-
-    bool wait(std::chrono::milliseconds timeout)
-    {
-        int cnt;
-        do {
-
-            {
-                std::unique_lock<std::mutex> lock(mtx);
-                if (sockets.empty() && !disposing)
-                {
-                    cv.wait(lock, [this]()->bool
-                    {
-                        return !this->sockets.empty() || !this->disposing;
-                    });
-                }
-
-                if(disposing)
-                    return false;
-
-                if(pollItems.size() != sockets.size())
-                {
-                    pollItems.clear();
-                    for(auto& pair: sockets)
-                    {
-                        zmq::pollitem_t pollItem = { pair.first, 0, ZMQ_POLLIN, 0 };
-                        pollItems.push_back(std::move(pollItem));
-                    }
-                }
-            }
-
-            try
-            {
-                {
-                    std::unique_lock<std::mutex> lock(pollingMtx);
-                    if(!pollItems.empty())
-                    {
-                        cnt = zmq::poll(&pollItems[0], pollItems.size(), static_cast<long>(timeout.count()));
-                    }
-                    else
-                    {
-                        cnt = 0;
-                    }
-                    pollingFinished.notify_all();
-                    if (cnt == 0)
-                    {
-                        continue;
-                    }
-                }
-
-                auto poIt = pollItems.begin();
-
-                int i = 0;
-                while (i < cnt && poIt != pollItems.end())
-                {
-                    if (poIt->revents & ZMQ_POLLIN)
-                    {
-                        std::unique_lock<std::mutex> lock(mtx);
-                        auto socketPtr = poIt->socket;
-                        auto itr = sockets.find(socketPtr);
-                        if( itr != sockets.end())
-                        {
-                            auto socket = itr->second.first;
-                            auto handler = itr->second.second;
-                            handler( socket );
-                        }
-                        i++;
-                    }
-                    ++poIt;
-                }
-            }
-            catch(zmq::error_t const& e)
-            {
-                std::cout << "exception: " << e.what() << std::endl;
-                continue;
-            }
-        } while (cnt > 0);
-        return true;
-    }
-private:
-    void poll()
-    {
-
-        try {
-
-            while(wait(std::chrono::milliseconds(100)))
-            {
-            }
-        }
-        catch(zmq::error_t const& e )
-        {
-
-        }
-
-
-
-    }
-
-private:
-    std::vector<zmq::pollitem_t> pollItems;
-    std::map<void*, std::pair<zmq::socket_t*, HandlerType> > sockets;
-    std::mutex mtx;
-    std::mutex pollingMtx;
-    std::condition_variable cv;
-    std::condition_variable pollingFinished;
-    bool disposing;
-    std::thread pollThread;
-
-};
-
-
-
-
 template<bool Bindable>
 class ZMQSocketImpl
 {
 
-protected:
-
-    void open(zmq::socket_t* socket, std::string const& addr)
+public:
+    static void open(zmq::socket_t* socket, std::string const& addr)
     {
         socket->bind(addr);
     }
-    void close(zmq::socket_t* socket, std::string const& addr)
+    static void close(zmq::socket_t* socket, std::string const& addr)
     {
         socket->unbind(addr);
     }
@@ -225,12 +69,12 @@ protected:
 template<>
 class ZMQSocketImpl<false>
 {
-protected:
-    void open(zmq::socket_t* socket, std::string const& addr)
+public:
+    static void open(zmq::socket_t* socket, std::string const& addr)
     {
         socket->connect(addr);
     }
-    void close(zmq::socket_t* socket, std::string const& addr)
+    static void close(zmq::socket_t* socket, std::string const& addr)
     {
         socket->disconnect(addr);
     }
@@ -239,7 +83,7 @@ protected:
 
 
 template<zmq::socket_type SocketType, bool IsServer>
-class ZMQSocket : public ZMQSocketImpl<IsServer>
+class ZMQSocket
 {
 private:
     using Impl = ZMQSocketImpl<IsServer>;
@@ -247,9 +91,23 @@ public:
     using PollerType = Poller;
 
     grlx::Signal<void(const char*, size_t)> MsgReceived;
+    grlx::Signal<void()>                    Connected;
+    grlx::Signal<void()>                    Disconnected;
+    grlx::Signal<void()>                    ConnectDelayed;
+    grlx::Signal<void()>                    ConnectRetried;
+    grlx::Signal<void()>                    Listening;
+    grlx::Signal<void()>                    BindFailed;
+    grlx::Signal<void()>                    Accepted;
+    grlx::Signal<void()>                    AcceptFailed;
+    grlx::Signal<void()>                    Closed;
+    grlx::Signal<void()>                    CloseFailed;
+    grlx::Signal<void()>                    HandshakeFailed;
+    grlx::Signal<void()>                    HandshakeSucceed;
+    grlx::Signal<void()>                    Unknown;
+
 
     ZMQSocket( grlx::ServiceContainerPtr serviceContainer)
-        : serviceContainer( serviceContainer)
+        : serviceContainer(serviceContainer)
     {
         if( !serviceContainer->hasService<zmq::context_t>() )
         {
@@ -260,9 +118,9 @@ public:
         }
         if( !serviceContainer->hasService< PollerType > ())
         {
-            serviceContainer->addService<PollerType>([]()
+            serviceContainer->addService<PollerType>([serviceContainer]()
             {
-                return std::make_shared<PollerType>();
+                return std::make_shared<PollerType>(serviceContainer);
             });
         }
     }
@@ -283,23 +141,33 @@ public:
 
         zmq_socket.reset( new zmq::socket_t( *zmq_ctx, SocketType ));
 
+
+        this->attachMonitor(*zmq_socket, ZMQ_EVENT_ALL);
+
         Impl::open(zmq_socket.get(), addr);
 
         auto poller = serviceContainer->get<PollerType>();
 
         poller->add(zmq_socket.get(), ZMQ_POLLIN, [this](zmq::socket_t* socket)
         {
+
             zmq::message_t msg;
             socket->recv(&msg);
+//            std::cout.write(static_cast<const char*>(msg.data()), msg.size());
+//            std::cout << std::endl;
             this->MsgReceived.Emit(static_cast<const char*>(msg.data()), msg.size());
+
         });
+
 
     }
 
     void close()
     {
         if(!zmq_socket)
+        {
             return;
+        }
 
         auto poller = serviceContainer->get<PollerType>();
 
@@ -307,7 +175,10 @@ public:
 
         Impl::close(zmq_socket.get(), addr);
 
+        dettachMonitor();
+
         zmq_socket.reset();
+
     }
 
     void send( const char* data, size_t size )
@@ -316,12 +187,187 @@ public:
         zmq_socket->send(msg);
     }
 
+
+
+protected:
+
+    virtual void on_monitor_started()
+    {        
+    }
+    virtual void on_event_connected(const zmq_event_t &event_, std::string const& addr_)
+    {   
+        this->Connected.Emit();
+    }
+    virtual void on_event_connect_delayed(const zmq_event_t &event_, std::string const& addr_)
+    {
+        this->ConnectDelayed.Emit();
+    }
+    virtual void on_event_connect_retried(const zmq_event_t &event_, std::string const& addr_)
+    {
+        this->ConnectRetried.Emit();
+    }
+    virtual void on_event_listening(const zmq_event_t &event_, std::string const& addr_)
+    {
+        this->Listening.Emit();
+    }
+    virtual void on_event_bind_failed(const zmq_event_t &event_, std::string const& addr_)
+    {
+        this->BindFailed.Emit();
+    }
+    virtual void on_event_accepted(const zmq_event_t &event_, std::string const& addr_)
+    {
+        this->Accepted.Emit();
+    }
+    virtual void on_event_accept_failed(const zmq_event_t &event_, std::string const& addr_)
+    {
+        this->AcceptFailed.Emit();
+    }
+    virtual void on_event_closed(const zmq_event_t &event_, std::string const& addr_)
+    {
+        this->Closed.Emit();
+    }
+    virtual void on_event_close_failed(const zmq_event_t &event_, std::string const& addr_)
+    {
+        this->CloseFailed.Emit();
+    }
+    virtual void on_event_disconnected(const zmq_event_t &event_, std::string const& addr_)
+    {
+        this->Disconnected.Emit();
+    }
+    virtual void on_event_handshake_failed(const zmq_event_t &event_, std::string const& addr_)
+    {
+        this->HandshakeFailed.Emit();
+    }
+    virtual void on_event_handshake_succeed(const zmq_event_t &event_, std::string const& addr_)
+    {
+        this->HandshakeSucceed.Emit();
+    }
+    virtual void on_event_unknown(const zmq_event_t &event_, std::string const& addr_)
+    {
+        this->Unknown.Emit();
+    }
+
+
+
+private:
+    void attachMonitor(zmq::socket_t &socket, int events = ZMQ_EVENT_ALL)
+    {
+        void* ptr = static_cast<void*>(socket);
+
+
+        std::string monitorAddr = "inproc://" + std::to_string(reinterpret_cast<std::intptr_t>(ptr))
+                + ".monitor";
+
+        int rc = zmq_socket_monitor(ptr, monitorAddr.c_str(), events);
+        if (rc != 0)
+            throw error_t ();
+
+
+        auto poller = serviceContainer->get<Poller>();
+
+        auto zmq_ctx = serviceContainer->get<zmq::context_t>();
+
+        zmq_monitor_socket.reset( new zmq::socket_t( *zmq_ctx, ZMQ_PAIR ));
+
+        zmq_monitor_socket->connect(monitorAddr);
+
+        poller->add(zmq_monitor_socket.get(), ZMQ_POLLIN, [this](zmq::socket_t* socket)
+        {
+            zmq::message_t msg;
+            socket->recv(&msg);
+            zmq_event_t msgEvent;
+
+            auto data = static_cast<const char*>(msg.data());
+            memcpy(&msgEvent.event, data, sizeof(uint16_t));
+            data += sizeof(uint16_t);
+            memcpy(&msgEvent.value, data, sizeof(int32_t));
+
+            zmq::message_t addrMsg;
+            socket->recv(&addrMsg);
+
+            const char* str = static_cast<const char*>(addrMsg.data());
+            std::string address(str, str + addrMsg.size());
+
+//#ifdef ZMQ_EVENT_MONITOR_STOPPED
+//            if (msgEvent.event == ZMQ_EVENT_MONITOR_STOPPED)
+//            {
+//                zmq_monitor_socket->close();
+//                return;
+//            }
+//#endif
+
+            switch (msgEvent.event)
+            {
+            case ZMQ_EVENT_CONNECTED:
+                on_event_connected(msgEvent, address);
+                break;
+            case ZMQ_EVENT_CONNECT_DELAYED:
+                on_event_connect_delayed(msgEvent, address);
+                break;
+            case ZMQ_EVENT_CONNECT_RETRIED:
+                on_event_connect_retried(msgEvent, address);
+                break;
+            case ZMQ_EVENT_LISTENING:
+                on_event_listening(msgEvent, address);
+                break;
+            case ZMQ_EVENT_BIND_FAILED:
+                on_event_bind_failed(msgEvent, address);
+                break;
+            case ZMQ_EVENT_ACCEPTED:
+                on_event_accepted(msgEvent, address);
+                break;
+            case ZMQ_EVENT_ACCEPT_FAILED:
+                on_event_accept_failed(msgEvent, address);
+                break;
+            case ZMQ_EVENT_CLOSED:
+                on_event_closed(msgEvent, address);
+                break;
+            case ZMQ_EVENT_CLOSE_FAILED:
+                on_event_close_failed(msgEvent, address);
+                break;
+            case ZMQ_EVENT_DISCONNECTED:
+                on_event_disconnected(msgEvent, address);
+                break;
+#ifdef ZMQ_BUILD_DRAFT_API
+            case ZMQ_EVENT_HANDSHAKE_FAILED:
+                on_event_handshake_failed(*event, address);
+                break;
+            case ZMQ_EVENT_HANDSHAKE_SUCCEED:
+                on_event_handshake_succeed(*event, address);
+                break;
+#endif
+            default:
+                on_event_unknown(msgEvent, address);
+                break;
+            }
+
+        });
+
+
+
+        on_monitor_started();
+    }
+
+    void dettachMonitor()
+    {
+        if (zmq_monitor_socket)
+        {
+
+            auto poller = serviceContainer->get<Poller>();            
+
+            zmq_socket_monitor(static_cast<void*>(*zmq_monitor_socket), nullptr, 0);
+            poller->remove(zmq_monitor_socket.get());
+
+            zmq_monitor_socket.reset();
+        }
+    }
 private:
 
     grlx::ServiceContainerPtr serviceContainer;
     std::shared_ptr<zmq::context_t> zmq_ctx;
     std::unique_ptr<zmq::socket_t> zmq_socket;
-    std::string addr;
+    std::unique_ptr<zmq::socket_t> zmq_monitor_socket;
+    std::string addr;    
 
 };
 

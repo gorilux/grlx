@@ -29,72 +29,46 @@
 
 
 #include <memory>
-#include <unordered_map>
-#include <type_traits>
-
+#include <functional>
 #include <grlx/service/servicecontainer.h>
 
-#include "serviceprovider.h"
+#include <zmq.hpp>
+
+
 
 namespace grlx
 {
+
 namespace rpc
 {
 
-
-template<typename EncoderType, typename Transport>
-class Server : public ServiceProvider<EncoderType, Details::DummyBaseClass >
+namespace ZeroMQ
 {
 
+class Poller
+{
 public:
 
-    using TransportType =  Transport;
+    using HandlerType = std::function<void(zmq::socket_t* socket)>;
 
-    Server(ServiceContainerPtr serviceContainer)
-        : transport( new TransportType( serviceContainer ))
-    {
-        hookEvents();
-    }
+    Poller( grlx::ServiceContainerPtr serviceContainer );
 
-    Server()
-        : Server(ServiceContainerFactory::create())
-    {
-    }
-    virtual ~Server()
-    {
-        this->close();
-    }
-    void open(std::string const& addr)
-    {
-        transport->open(addr);
+    ~Poller ();
 
-    }
-    void close()
-    {
-        transport->close();
-    }
+    void add(zmq::socket_t* socket, short events, HandlerType handler);
 
-protected:
-
-    void send(const char* data, size_t len) override
-    {
-        transport->send(data,len);
-    }
-
-private:
-    void hookEvents()
-    {
-        transport->MsgReceived.Attach(std::bind(&Server::handleMessage, this, std::placeholders::_1, std::placeholders::_2));
-    }
-
+    void remove(zmq::socket_t *socket);
 
 private:
 
-    std::unique_ptr<TransportType> transport;
-
-
-
+    class Private;
+    friend class Private;
+    std::unique_ptr<Private> d_ptr;
 };
 
-} // namespace rpc
-} // namespace grlx
+
+}
+
+}
+
+}

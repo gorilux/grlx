@@ -60,7 +60,17 @@ const grlx::fsm::DispatchTable<FSM, Stt, EventT> DispatchTable<FSM, Stt, EventT>
 template<typename Derived, typename BaseType = ::grlx::fsm::None>
 class FsmDefinition : public BaseType
 {
+
+public:
+    template<typename...Args>
+    FsmDefinition(Args&&...args)
+        : BaseType(std::forward<Args>(args)...)
+    {
+
+    }
 protected:
+
+
     template<typename FSM, typename Event>
     void NoTransition(FSM&, Event const&, int, int)
     {
@@ -517,8 +527,8 @@ public:
     typedef Stt SttType;
 
     template<typename...Args>
-    StateMachine(Args...args)
-        : FSMConfigDef(args...)
+    StateMachine(Args&&...args)
+        : FSMConfigDef(std::forward<Args>(args)...)
     {
         Init();
     }

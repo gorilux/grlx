@@ -77,15 +77,15 @@ public:
         }
     }
 
-    template<typename ...ArgTypes>
-    void Emit(const ArgTypes&... args)
-    {
-        std::lock_guard<std::mutex> lock(mutex);
-        for( auto& connection: connections)
-        {
-            connection.second( std::forward<const ArgTypes& >(args)... );
-        }
-    }
+//    template<typename ...ArgTypes>
+//    void Emit(const ArgTypes&... args)
+//    {
+//        std::lock_guard<std::mutex> lock(mutex);
+//        for( auto& connection: connections)
+//        {
+//            connection.second( std::forward<const ArgTypes& >(args)... );
+//        }
+//    }
 
 private:
 

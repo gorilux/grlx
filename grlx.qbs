@@ -8,13 +8,15 @@ Product {
     //cpp.cxxStandardLibrary: "libstdc++";
 
 
+    cpp.cxxFlags: ["-Wno-unused-parameter"]
 
     //type: ["dynamiclibrary"]
     type: ["staticlibrary"]
 
     cpp.includePaths: [
         "include",
-        "include/grlx/service"
+        "include/grlx/service",
+        "include/grlx/rpc/transport/zmq"
     ]
     files: [
         "include/**/*.h",
@@ -28,7 +30,8 @@ Product {
             "include"
         ]
         cpp.defines: ["RAPIDJSON_HAS_STDSTRING", "RAPIDJSON_SSE42", "RAPIDJSON_HAS_CXX11_RVALUE_REFS"]
-        cpp.cxxLanguageVersion: "c++14";        
+        cpp.cxxLanguageVersion: "c++14";
+        cpp.cxxFlags: ["-Wno-unused-parameter"]
         //cpp.cxxStandardLibrary: "libstdc++";
 
         //cpp.libraryPath: xyzPath + "/lib"

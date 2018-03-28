@@ -66,12 +66,12 @@ public:
     void open(std::string const& addr)
     {
         transport->open(addr);
-
     }
     void close()
     {
         transport->close();
     }
+
 protected:
 
     void send(const char* data, size_t len) override
