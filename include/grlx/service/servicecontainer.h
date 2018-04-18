@@ -48,15 +48,9 @@ class ServiceContainer
     ServiceContainer& operator=(const ServiceContainer&) = delete;
 private:
 
-    ServiceContainer(const ServiceContainerPtr& parent)
-        : parent(parent)
-    {}
+    ServiceContainer(const ServiceContainerPtr& parent);
 
-    ServiceContainer()
-    {}
-
-
-
+    ServiceContainer();
 
     friend class ServiceContainerFactory;
 
@@ -110,6 +104,8 @@ private:
 public:
 
     virtual ~ServiceContainer();
+
+    static ServiceContainerPtr& globalInstance();
 
     template<typename T>
     void addService()

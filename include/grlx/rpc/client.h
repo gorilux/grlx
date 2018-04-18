@@ -34,6 +34,7 @@
 #include <zmq.hpp>
 
 #include <grlx/service/servicecontainer.h>
+#include <grlx/tmpl/signal.h>
 #include "serviceprovider.h"
 #include "invoker.h"
 
@@ -48,6 +49,8 @@ class Client : public Invoker<EncoderType, Details::DummyBaseClass >
 
 public:
     using TransportType = Transport;
+    grlx::Signal<void()>  Connected;
+    grlx::Signal<void()>  Disconnected;
 
     Client(ServiceContainerPtr serviceContainer)
         : transport( new TransportType( serviceContainer ))
@@ -83,6 +86,8 @@ private:
     void hookEvents()
     {
         transport->MsgReceived.Attach(std::bind(&Client::handleResp, this, std::placeholders::_1, std::placeholders::_2));
+        transport->Connected.Attach([this](){ this->Connected.Emit(); });
+        transport->Disconnected.Attach([this](){ this->Disconnected.Emit(); });
     }
 
 

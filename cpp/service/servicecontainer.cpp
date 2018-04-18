@@ -5,12 +5,25 @@
 
 namespace grlx {
 
+ServiceContainer::ServiceContainer(const ServiceContainerPtr &parent)
+    : parent(parent)
+{}
+
+ServiceContainer::ServiceContainer()
+{}
+
 ServiceContainer::~ServiceContainer()
 {
     objectMap.clear();
 
     if(parent)
         parent.reset();
+}
+
+ServiceContainerPtr& ServiceContainer::globalInstance()
+{
+    static auto instance = ServiceContainerPtr(new ServiceContainer());
+    return instance;
 }
 
 

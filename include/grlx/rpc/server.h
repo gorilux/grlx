@@ -33,6 +33,7 @@
 #include <type_traits>
 
 #include <grlx/service/servicecontainer.h>
+#include <grlx/tmpl/signal.h>
 
 #include "serviceprovider.h"
 
@@ -48,7 +49,15 @@ class Server : public ServiceProvider<EncoderType, Details::DummyBaseClass >
 
 public:
 
-    using TransportType =  Transport;
+    using TransportType = Transport;
+    grlx::Signal<void()>  Connected;
+    grlx::Signal<void()>  Disconnected;
+    grlx::Signal<void()>  Listening;
+    grlx::Signal<void()>  BindFailed;
+    grlx::Signal<void()>  Accepted;
+    grlx::Signal<void()>  Closed;
+
+
 
     Server(ServiceContainerPtr serviceContainer)
         : transport( new TransportType( serviceContainer ))
@@ -85,6 +94,13 @@ private:
     void hookEvents()
     {
         transport->MsgReceived.Attach(std::bind(&Server::handleMessage, this, std::placeholders::_1, std::placeholders::_2));
+        transport->Connected.Attach([this](){ this->Connected.Emit(); });
+        transport->Disconnected.Attach([this](){ this->Disconnected.Emit(); });
+        transport->Listening.Attach([this](){ this->Listening.Emit(); });
+        transport->BindFailed.Attach([this](){ this->BindFailed.Emit(); });
+        transport->Accepted.Attach([this](){ this->Accepted.Emit(); });
+        transport->Closed.Attach([this](){ this->Closed.Emit(); });
+
     }
 
 
