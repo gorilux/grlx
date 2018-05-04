@@ -75,6 +75,11 @@ public:
         transport->close();
     }
 
+    bool isConnected()
+    {
+        return connected;
+    }
+
 protected:
 
     void send(const char* data, size_t len) override
@@ -86,14 +91,14 @@ private:
     void hookEvents()
     {
         transport->MsgReceived.Attach(std::bind(&Client::handleResp, this, std::placeholders::_1, std::placeholders::_2));
-        transport->Connected.Attach([this](){ this->Connected.Emit(); });
-        transport->Disconnected.Attach([this](){ this->Disconnected.Emit(); });
+        transport->Connected.Attach([this](){ connected = true; this->Connected.Emit(); });
+        transport->Disconnected.Attach([this](){ connected = false; this->Disconnected.Emit(); });
     }
 
 
 private:
-
     std::unique_ptr<TransportType> transport;
+    bool connected = false;
 
 
 

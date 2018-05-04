@@ -83,6 +83,12 @@ public:
         transport->close();
     }
 
+    bool isConnected()
+    {
+        return connected;
+    }
+
+
 protected:
 
     void send(const char* data, size_t len) override
@@ -94,8 +100,8 @@ private:
     void hookEvents()
     {
         transport->MsgReceived.Attach(std::bind(&Server::handleMessage, this, std::placeholders::_1, std::placeholders::_2));
-        transport->Connected.Attach([this](){ this->Connected.Emit(); });
-        transport->Disconnected.Attach([this](){ this->Disconnected.Emit(); });
+        transport->Connected.Attach([this](){ connected = true; this->Connected.Emit(); });
+        transport->Disconnected.Attach([this](){ connected = false; this->Disconnected.Emit(); });
         transport->Listening.Attach([this](){ this->Listening.Emit(); });
         transport->BindFailed.Attach([this](){ this->BindFailed.Emit(); });
         transport->Accepted.Attach([this](){ this->Accepted.Emit(); });
@@ -105,8 +111,9 @@ private:
 
 
 private:
-
     std::unique_ptr<TransportType> transport;
+    bool connected = false;
+
 
 
 

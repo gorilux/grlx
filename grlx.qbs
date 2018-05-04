@@ -30,7 +30,7 @@ Product {
             "include"
         ]
         cpp.defines: ["RAPIDJSON_HAS_STDSTRING", "RAPIDJSON_SSE42", "RAPIDJSON_HAS_CXX11_RVALUE_REFS"]
-        cpp.cxxLanguageVersion: "c++14";
+        cpp.cxxLanguageVersion: "c++17";
         cpp.cxxFlags: ["-Wno-unused-parameter"]
         //cpp.cxxStandardLibrary: "libstdc++";
 
