@@ -144,7 +144,6 @@ public:
 
         this->attachMonitor(*zmq_socket, ZMQ_EVENT_ALL);
 
-        Impl::open(zmq_socket.get(), addr);
 
         auto poller = serviceContainer->get<PollerType>();
 
@@ -158,6 +157,8 @@ public:
             this->MsgReceived.Emit(static_cast<const char*>(msg.data()), msg.size());
 
         });
+
+        Impl::open(zmq_socket.get(), addr);
 
 
     }
@@ -195,7 +196,8 @@ protected:
     {        
     }
     virtual void on_event_connected(const zmq_event_t &event_, std::string const& addr_)
-    {   
+    {
+        //std::cout << __PRETTY_FUNCTION__ << std::endl;
         this->Connected.Emit();
     }
     virtual void on_event_connect_delayed(const zmq_event_t &event_, std::string const& addr_)

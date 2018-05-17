@@ -70,7 +70,7 @@ public:
     template<typename ...ArgTypes>
     void Emit(ArgTypes&&... args)
     {
-        std::lock_guard<std::mutex> lock(mutex);
+        //std::lock_guard<std::mutex> lock(mutex);
         for( auto& connection: connections)
         {
             connection.second( std::forward<ArgTypes>(args)... );

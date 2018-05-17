@@ -103,6 +103,8 @@ public:
 
         pollingThread = std::thread( std::bind(&Private::pollSockets, this) );
 
+        pollingStarted.wait();
+
 
     }
 
@@ -159,6 +161,8 @@ public:
 
     void pollSockets()
     {
+
+        pollingStarted.set();
 
         while(!disposing)
         {
@@ -252,6 +256,7 @@ public:
     std::vector<zmq::pollitem_t> pollItems;
     mutable std::mutex mtx;
     grlx::async::ResetEvent pollingCompleted;
+    grlx::async::ResetEvent pollingStarted;
     std::string internalAddr;
     std::thread pollingThread;
     std::unique_ptr<zmq::socket_t> pollerSocket;

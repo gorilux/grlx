@@ -93,6 +93,9 @@ protected:
 
     void send(const char* data, size_t len) override
     {
+//        std::cerr << "Snd:";
+//        std::cerr.write(data, len);
+//        std::cerr << std::endl;
         transport->send(data,len);
     }
 

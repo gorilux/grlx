@@ -255,11 +255,12 @@ private:
 
     void error(const std::string& method, int id)
     {
-
+        std::cerr << "ERROR:" << method << " " << id << std::endl;
     }
 
     void error(const std::string& method)
     {
+        std::cerr << "ERROR:" << method << std::endl;
 
     }
 

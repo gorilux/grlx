@@ -40,6 +40,7 @@
 
 #include <grlx/async/asyncmanager.h>
 #include <grlx/tmpl/callfunc.h>
+#include <grlx/async/threadpool.h>
 
 #include "connection.h"
 #include "utility.h"
@@ -108,7 +109,7 @@ public:
         auto promise = std::make_shared<std::promise<R>>();
 
         auto asyncOp = asyncManager.createOperation(
-            [promise](typename EncoderType::ResultType& result)
+            [promise,this](typename EncoderType::ResultType& result)
             {
                 R res;
                 EncoderType::decodeType(result, res);
@@ -135,7 +136,7 @@ public:
         auto promise = std::make_shared<std::promise<void>>();
 
         auto asyncOp = asyncManager.createOperation(
-            [promise](typename EncoderType::ResultType& result)
+            [promise,this](typename EncoderType::ResultType& result)
             {
                 promise->set_value();
             });
@@ -159,11 +160,12 @@ public:
     {
 
         auto asyncOp = asyncManager.createOperation(
-            [f = std::move(callback) ](typename EncoderType::ResultType& result)
+            [f = std::move(callback), this ](typename EncoderType::ResultType& result)
             {
                 R res;
                 EncoderType::decodeType(result, res);
-                f( res );
+                threadPool.schedule(std::move(f), std::move(res) );
+                //f( res );
             });
 
         Request<TArgs...> request(std::forward<std::string>(procName),
@@ -184,9 +186,10 @@ public:
     {
 
         auto asyncOp = asyncManager.createOperation(
-            [f = std::move(callback) ](typename EncoderType::ResultType const& result)
+            [f = std::move(callback), this ](typename EncoderType::ResultType const& result)
             {
-                f();
+                threadPool.schedule(std::move(f));
+                //f();
             });
 
         Request<TArgs...> request(std::forward<std::string>(procName),
@@ -237,6 +240,7 @@ private:
 
 private:
     AsyncManager<int> asyncManager;
+    async::ThreadPool<> threadPool;
 
 };
 
