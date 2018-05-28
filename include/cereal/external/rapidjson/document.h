@@ -1936,7 +1936,12 @@ private:
         if (count) {
             GenericValue* e = static_cast<GenericValue*>(allocator.Malloc(count * sizeof(GenericValue)));
             SetElementsPointer(e);
+CEREAL_RAPIDJSON_DIAG_PUSH
+#if defined(__GNUC__) && __GNUC__ >= 8
+CEREAL_RAPIDJSON_DIAG_OFF(class-memaccess) // ignore complains from gcc that no trivial copy constructor exists.
+#endif
             std::memcpy(e, values, count * sizeof(GenericValue));
+CEREAL_RAPIDJSON_DIAG_POP
         }
         else
             SetElementsPointer(0);
@@ -1949,7 +1954,12 @@ private:
         if (count) {
             Member* m = static_cast<Member*>(allocator.Malloc(count * sizeof(Member)));
             SetMembersPointer(m);
+CEREAL_RAPIDJSON_DIAG_PUSH
+#if defined(__GNUC__) && __GNUC__ >= 8
+CEREAL_RAPIDJSON_DIAG_OFF(class-memaccess) // ignore complains from gcc that no trivial copy constructor exists.
+#endif
             std::memcpy(m, members, count * sizeof(Member));
+CEREAL_RAPIDJSON_DIAG_POP
         }
         else
             SetMembersPointer(0);

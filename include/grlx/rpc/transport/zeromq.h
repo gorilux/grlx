@@ -41,7 +41,14 @@
 #include <grlx/tmpl/signal.h>
 #include <grlx/service/servicecontainer.h>
 
+#include <string>
+#include <typeinfo>
+#include <cstdlib>
+#include <memory>
+#include <cxxabi.h>
+
 #include <iostream>
+
 
 
 namespace grlx {
@@ -50,6 +57,27 @@ namespace rpc {
 
 namespace ZeroMQ
 {
+
+
+inline std::string demangle(const char* name) {
+
+    int status = -4; // some arbitrary value to eliminate the compiler warning
+
+    // enable c++11 by passing the flag -std=c++11 to g++
+    std::unique_ptr<char, void(*)(void*)> res {
+        abi::__cxa_demangle(name, NULL, NULL, &status),
+        std::free
+    };
+
+    return (status==0) ? res.get() : name ;
+}
+
+template <class T>
+std::string type(const T& t) {
+
+    return demangle(typeid(t).name());
+}
+
 
 template<bool Bindable>
 class ZMQSocketImpl
@@ -141,7 +169,6 @@ public:
 
         zmq_socket.reset( new zmq::socket_t( *zmq_ctx, SocketType ));
 
-
         this->attachMonitor(*zmq_socket, ZMQ_EVENT_ALL);
 
 
@@ -151,14 +178,25 @@ public:
         {
 
             zmq::message_t msg;
-            socket->recv(&msg);
-//            std::cout.write(static_cast<const char*>(msg.data()), msg.size());
-//            std::cout << std::endl;
-            this->MsgReceived.Emit(static_cast<const char*>(msg.data()), msg.size());
+            if(socket->recv(&msg, ZMQ_DONTWAIT))
+            {
+                std::cout << type(*this) << " Rcv:";
+                std::cout.write(static_cast<const char*>(msg.data()), msg.size());
+                std::cout << std::endl;
+                this->MsgReceived.Emit(static_cast<const char*>(msg.data()), msg.size());
+            }
+            else
+            {
+                // TODO:: Handle ZMQReceive error
+            }
 
         });
 
+
+
         Impl::open(zmq_socket.get(), addr);
+
+
 
 
     }
@@ -184,6 +222,10 @@ public:
 
     void send( const char* data, size_t size )
     {
+        std::cout << type(*this) << " Snd:";
+        std::cout.write(data, size);
+        std::cout << std::endl;
+
         zmq::message_t msg(data, size);
         zmq_socket->send(msg);
     }
@@ -300,47 +342,59 @@ private:
 
             switch (msgEvent.event)
             {
-            case ZMQ_EVENT_CONNECTED:
-                on_event_connected(msgEvent, address);
-                break;
-            case ZMQ_EVENT_CONNECT_DELAYED:
-                on_event_connect_delayed(msgEvent, address);
-                break;
-            case ZMQ_EVENT_CONNECT_RETRIED:
-                on_event_connect_retried(msgEvent, address);
-                break;
-            case ZMQ_EVENT_LISTENING:
-                on_event_listening(msgEvent, address);
-                break;
-            case ZMQ_EVENT_BIND_FAILED:
-                on_event_bind_failed(msgEvent, address);
-                break;
-            case ZMQ_EVENT_ACCEPTED:
-                on_event_accepted(msgEvent, address);
-                break;
-            case ZMQ_EVENT_ACCEPT_FAILED:
-                on_event_accept_failed(msgEvent, address);
-                break;
-            case ZMQ_EVENT_CLOSED:
-                on_event_closed(msgEvent, address);
-                break;
-            case ZMQ_EVENT_CLOSE_FAILED:
-                on_event_close_failed(msgEvent, address);
-                break;
-            case ZMQ_EVENT_DISCONNECTED:
-                on_event_disconnected(msgEvent, address);
-                break;
+                case ZMQ_EVENT_CONNECTED:
+                    if(SocketType == zmq::socket_type::sub)
+                    {
+                        zmq_socket->setsockopt( ZMQ_SUBSCRIBE, "", 0);
+                        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+                    }
+                    on_event_connected(msgEvent, address);
+                    break;
+                case ZMQ_EVENT_CONNECT_DELAYED:
+                    on_event_connect_delayed(msgEvent, address);
+                    break;
+                case ZMQ_EVENT_CONNECT_RETRIED:
+                    on_event_connect_retried(msgEvent, address);
+                    break;
+                case ZMQ_EVENT_LISTENING:
+                    on_event_listening(msgEvent, address);
+                    break;
+                case ZMQ_EVENT_BIND_FAILED:
+                    on_event_bind_failed(msgEvent, address);
+                    break;
+                case ZMQ_EVENT_ACCEPTED:
+                    if(SocketType == zmq::socket_type::sub)
+                    {
+                        zmq_socket->setsockopt( ZMQ_SUBSCRIBE, "", 0);
+                        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+                    }
+
+                    on_event_accepted(msgEvent, address);
+                    break;
+                case ZMQ_EVENT_ACCEPT_FAILED:
+                    on_event_accept_failed(msgEvent, address);
+                    break;
+                case ZMQ_EVENT_CLOSED:
+                    on_event_closed(msgEvent, address);
+                    break;
+                case ZMQ_EVENT_CLOSE_FAILED:
+                    on_event_close_failed(msgEvent, address);
+                    break;
+                case ZMQ_EVENT_DISCONNECTED:
+                    on_event_disconnected(msgEvent, address);
+                    break;
 #ifdef ZMQ_BUILD_DRAFT_API
-            case ZMQ_EVENT_HANDSHAKE_FAILED:
-                on_event_handshake_failed(*event, address);
-                break;
-            case ZMQ_EVENT_HANDSHAKE_SUCCEED:
-                on_event_handshake_succeed(*event, address);
-                break;
+                case ZMQ_EVENT_HANDSHAKE_FAILED:
+                    on_event_handshake_failed(*event, address);
+                    break;
+                case ZMQ_EVENT_HANDSHAKE_SUCCEED:
+                    on_event_handshake_succeed(*event, address);
+                    break;
 #endif
-            default:
-                on_event_unknown(msgEvent, address);
-                break;
+                default:
+                    on_event_unknown(msgEvent, address);
+                    break;
             }
 
         });

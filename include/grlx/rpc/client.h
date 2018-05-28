@@ -93,6 +93,7 @@ private:
         transport->MsgReceived.Attach(std::bind(&Client::handleResp, this, std::placeholders::_1, std::placeholders::_2));
         transport->Connected.Attach([this](){ connected = true; this->Connected.Emit(); });
         transport->Disconnected.Attach([this](){ connected = false; this->Disconnected.Emit(); });
+        transport->Accepted.Attach([this](){ connected = true; this->Connected.Emit(); });
     }
 
 

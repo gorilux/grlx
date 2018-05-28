@@ -208,12 +208,12 @@ namespace cereal
         switch(itsNodeStack.top())
         {
           case NodeType::StartArray:
-            itsWriter.StartArray();
+            itsWriter.StartArray();   //-fallthrough
           case NodeType::InArray:
             itsWriter.EndArray();
             break;
           case NodeType::StartObject:
-            itsWriter.StartObject();
+            itsWriter.StartObject(); //-fallthrough
           case NodeType::InObject:
             itsWriter.EndObject();
             break;

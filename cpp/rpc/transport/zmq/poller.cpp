@@ -221,7 +221,7 @@ public:
                                 }
                                 catch(zmq::error_t const& e)
                                 {
-                                    std::cout << "exception: " << e.what() << std::endl;
+                                    std::cout << "ZMQ Exception: " << e.what() << std::endl;
                                 }
 
                             }
