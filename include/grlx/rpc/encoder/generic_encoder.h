@@ -101,7 +101,7 @@ public:
 
 
     template<typename Ch, typename HandlerType>
-    static bool decodeReq(Ch* buffer, int size, HandlerType& handler)
+    static bool decodeReq(Ch* buffer, int size, HandlerType& handler, TokenType userToken)
     {
         std::string str(buffer, size);
         std::istringstream is( str );
@@ -124,7 +124,7 @@ public:
                 archive( cereal::make_nvp("id", id ) );
                 archive( cereal::make_nvp("method", method ) );
 
-                handler.exec(method, id, archive);
+                handler.exec(method, id, archive, userToken);
 
 
                 break;
@@ -138,7 +138,7 @@ public:
                 std::string method;
                 archive( cereal::make_nvp("method", method ) );
                 // archive( cereal::make_nvp("params", params ) );
-                handler.exec(method, archive);
+                handler.exec(method, archive, userToken);
                 break;
             }
             case MsgType::Error:

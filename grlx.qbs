@@ -4,7 +4,7 @@ Product {
     name: "grlx"
     Depends { name: "cpp" }
 
-    cpp.cxxLanguageVersion: "c++14";
+    cpp.cxxLanguageVersion: "c++17";
     //cpp.cxxStandardLibrary: "libstdc++";
 
 
@@ -16,9 +16,10 @@ Product {
     cpp.includePaths: [
         "include",
         "include/grlx/service",
-        "include/grlx/rpc/transport/zmq"
+        "include/grlx/rpc/transport/zmq",
+        "include/grlx/rpc/transport"
     ]
-    files: [
+    files: [       
         "include/**/*.h",
         "cpp/**/*.cpp"
     ]

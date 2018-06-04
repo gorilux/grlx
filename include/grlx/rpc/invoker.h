@@ -42,7 +42,6 @@
 #include <grlx/tmpl/callfunc.h>
 #include <grlx/async/threadpool.h>
 
-#include "connection.h"
 #include "utility.h"
 #include "types.h"
 #include "message.h"
@@ -122,7 +121,7 @@ public:
 
         EncoderType::encode(request, [&](const char* data, size_t size)
         {
-            this->send(data,size);
+            this->send(data,size,nullptr);
         });
 
         return promise->get_future();
@@ -147,7 +146,7 @@ public:
 
         EncoderType::encode(request, [&](const char* data, size_t size)
         {
-            this->send(data,size);
+            this->send(data,size,nullptr);
         });
 
         return promise->get_future();
@@ -174,7 +173,7 @@ public:
 
         EncoderType::encode(request, [&](const char* data, size_t size)
         {
-            this->send(data,size);
+            this->send(data,size, nullptr);
         });
 
 
@@ -198,7 +197,7 @@ public:
 
         EncoderType::encode(request, [&](const char* data, size_t size)
         {
-            this->send(data,size);
+            this->send(data,size, nullptr);
         });
 
 
@@ -212,14 +211,14 @@ public:
 
         EncoderType::encode(notification, [&](const char* data, size_t size)
         {
-            this->send(data,size);
+            this->send(data,size, nullptr);
         });
     }
 
 protected:
-    virtual void send(const char* msg, size_t len) = 0;
+    virtual void send(const char* msg, size_t len, TokenType const& userToken) = 0;
 
-    void handleResp(const char* msg, size_t size)
+    void handleResp(const char* msg, size_t size, TokenType const& userToken)
     {
         EncoderType::decodeResp(msg, size, static_cast<SelfType&>(*this));
     }

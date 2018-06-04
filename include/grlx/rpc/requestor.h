@@ -35,7 +35,7 @@
 
 #include <grlx/service/servicecontainer.h>
 #include <grlx/tmpl/signal.h>
-#include "serviceprovider.h"
+#include "serviceactivator.h"
 #include "invoker.h"
 
 namespace grlx {
@@ -43,36 +43,41 @@ namespace rpc {
 
 
 
-template<typename EncoderType, typename Transport>
-class Client : public Invoker<EncoderType, Details::DummyBaseClass >
+template<typename EncoderType, typename Endpoint>
+class Requestor : public Invoker<EncoderType, Details::DummyBaseClass >
 {
 
 public:
-    using TransportType = Transport;
+    using EndpointType = Endpoint;
     grlx::Signal<void()>  Connected;
     grlx::Signal<void()>  Disconnected;
 
-    Client(ServiceContainerPtr serviceContainer)
-        : transport( new TransportType( serviceContainer ))
+    Requestor(ServiceContainerPtr serviceContainer)
+        : endpoint( new EndpointType( serviceContainer ))
     {
         hookEvents();
     }
 
-    Client()
-        : Client(ServiceContainerFactory::create())
+    Requestor()
+        : Requestor(ServiceContainerFactory::create())
     {
     }
-    virtual ~Client()
+    virtual ~Requestor()
     {
         this->close();
     }
-    void open(std::string const& addr)
+    void listen(std::string const& addr)
     {
-        transport->open(addr);
+        endpoint->listen(addr);
+    }
+
+    void connect(std::string const& addr)
+    {
+        endpoint->connect(addr);
     }
     void close()
     {
-        transport->close();
+        endpoint->close();
     }
 
     bool isConnected()
@@ -82,23 +87,23 @@ public:
 
 protected:
 
-    void send(const char* data, size_t len) override
+    void send(const char* data, size_t len, TokenType const& userToken) override
     {
-        transport->send(data,len);
+        endpoint->send(data,len, userToken);
     }
 
 private:
     void hookEvents()
     {
-        transport->MsgReceived.Attach(std::bind(&Client::handleResp, this, std::placeholders::_1, std::placeholders::_2));
-        transport->Connected.Attach([this](){ connected = true; this->Connected.Emit(); });
-        transport->Disconnected.Attach([this](){ connected = false; this->Disconnected.Emit(); });
-        transport->Accepted.Attach([this](){ connected = true; this->Connected.Emit(); });
+        endpoint->MsgReceived.Attach(std::bind(&Requestor::handleResp, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+        endpoint->Connected.Attach([this](){ connected = true; this->Connected.Emit(); });
+        endpoint->Disconnected.Attach([this](){ connected = false; this->Disconnected.Emit(); });
+        endpoint->Accepted.Attach([this](){ connected = true; this->Connected.Emit(); });
     }
 
 
 private:
-    std::unique_ptr<TransportType> transport;
+    std::unique_ptr<EndpointType> endpoint;
     bool connected = false;
 
 

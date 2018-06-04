@@ -1,3 +1,5 @@
+#pragma once
+
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief
 ///
@@ -24,255 +26,102 @@
 /// @author David Salvador Pinheiro
 /// @author Copyright 2015, David Salvador Pinheiro
 ////////////////////////////////////////////////////////////////////////////////
-#ifndef GRLX_RPC_SERVICEPROVIDER_H
-#define GRLX_RPC_SERVICEPROVIDER_H
 
-#include <type_traits>
-#include <utility>
-#include <cstdint>
-#include <future>
-#include <functional>
+
 #include <memory>
 #include <unordered_map>
-#include <unordered_set>
-#include <grlx/async/asyncmanager.h>
-#include <grlx/tmpl/callfunc.h>
-#include <grlx/rpc/invoker.h>
+#include <type_traits>
 
-#include "connection.h"
-#include "utility.h"
-#include "types.h"
-#include "message.h"
+#include <grlx/service/servicecontainer.h>
+#include <grlx/tmpl/signal.h>
 
-namespace grlx {
+#include "serviceactivator.h"
 
+namespace grlx
+{
 namespace rpc
 {
 
-template<typename EncoderType, typename BaseType = Details::DummyBaseClass>
-class ServiceProvider : public BaseType
+
+template<typename EncoderType, typename Endpoint>
+class ServiceProvider : public ServiceActivator<EncoderType, Details::DummyBaseClass >
 {
-
-private:
-
-    template<typename T>
-    struct DeduceLambdaSignature
-    {
-        using type = void;
-    };
-
-    template<typename Ret, typename Class, typename... Args>
-    struct DeduceLambdaSignature<Ret(Class::*)(Args...) const>
-    {
-        using type = std::function<Ret(Args...)>;
-    };
-
-    struct HandlerBase
-    {
-        HandlerBase(ServiceProvider* self) : _self(self){}
-
-        virtual void operator()(const int* id, typename EncoderType::ParamsType&  params) = 0;
-
-        ServiceProvider *_self;
-    };
-
-    template<typename TSignature>
-    struct Handler : HandlerBase
-    {
-
-        Handler(ServiceProvider* self)
-            : HandlerBase(self) {}
-
-        std::function<TSignature> proc;
-
-        template<typename TParams, typename R, typename ...ArgsT>
-        R dispatch(TParams& params, std::function<R(ArgsT...)>& func)
-        {
-
-            std::tuple< typename std::decay<ArgsT>::type ... > args;
-
-            EncoderType::decodeType(params, args);
-
-            return grlx::callFunc(func, args);
-        }
-
-        template<typename TParams, typename ...ArgsT>
-        void dispatchAndReply(int id, TParams& params, std::function<void(ArgsT...)>& func)
-        {
-
-            Reply<void> reply;
-            reply.id = id;
-
-            dispatch(params, func);
-
-            EncoderType::encode(reply, [this](const char* data, size_t size)
-            {
-                this->_self->send(data,size);
-            });
-
-        }
-
-        template<typename TParams, typename R, typename ...ArgsT>
-        void dispatchAndReply(int id, TParams& params, std::function<R(ArgsT...)>& func)
-        {
-            Reply<R> reply;
-            reply.id = id;
-
-            reply.result = dispatch(params, func);
-
-            EncoderType::encode(reply, [this](const char* data, size_t size)
-            {
-                this->_self->send(data,size);
-            });
-        }
-
-        void operator ()(const int* id, typename EncoderType::ParamsType& params)
-        {
-            if( id == nullptr)
-            {
-                dispatch(params, proc);
-            }
-            else
-            {
-                dispatchAndReply(*id, params, proc);
-            }
-        }
-    };
-
-    using HandlerPtr = std::shared_ptr< HandlerBase >;
 
 public:
 
+    using EndpointType = Endpoint;
+    grlx::Signal<void()>  Connected;
+    grlx::Signal<void()>  Disconnected;
+    grlx::Signal<void()>  Listening;
+    grlx::Signal<void()>  BindFailed;
+    grlx::Signal<void()>  Accepted;
+    grlx::Signal<void()>  Closed;
 
-    using DataHandler = std::function<int(const char*, int)>;
-    using Type = ServiceProvider< EncoderType, BaseType>;
 
-    template<typename ...TArgs>
-    ServiceProvider( TArgs&&... args)
-        : BaseType(std::forward<TArgs>(args)...)
+
+    ServiceProvider(ServiceContainerPtr serviceContainer)
+        : endpoint( new EndpointType( serviceContainer ))
     {
-
-    }
-    virtual ~ServiceProvider(){}
-
-
-    template<typename R, typename C, typename ...ArgsT>
-    void attach(std::string&& name, C* objPtr, R(C::*memFunc)(ArgsT...) const)
-    {
-
-        using HandlerType = Handler<R(ArgsT...)>;
-
-        auto handler = std::make_shared< HandlerType >( this );
-
-        handler->proc = [&, objPtr, memFunc](ArgsT&&... args) -> R
-        {
-           return (objPtr->*memFunc)(args...);
-        };
-
-
-        this->attach(std::forward<std::string>(name), std::move(handler));
+        hookEvents();
     }
 
-    template<typename R, typename C, typename ...ArgsT>
-    void attach(std::string&& name, C* objPtr,  R(C::*memFunc)(ArgsT...))
+    ServiceProvider()
+        : ServiceProvider(ServiceContainerFactory::create())
     {
-
-        using HandlerType = Handler<R(ArgsT...)>;
-
-        auto handler = std::make_shared< HandlerType >( this );
-
-        handler->proc = [&, objPtr, memFunc](ArgsT&&... args) -> R
-        {
-            return (objPtr->*memFunc)(args...);
-        };
-
-
-        this->attach(std::forward<std::string>(name), std::move(handler));
+    }
+    virtual ~ServiceProvider()
+    {
+        this->close();
+    }
+    void listen(std::string const& addr)
+    {
+        endpoint->listen(addr);
     }
 
-    template<typename TSignature>
-    void attach(std::string&& name, std::function<TSignature>&& func)
+    void connect(std::string const& addr)
     {
-
-        using HandlerType = Handler<TSignature>;
-
-        auto handler = std::make_shared< HandlerType >( this );
-
-        std::swap(handler->proc, func);
-
-        this->attach(std::forward<std::string>(name), std::move(handler));
+        endpoint->connect(addr);
+    }
+    void close()
+    {
+        endpoint->close();
     }
 
-    template<typename F>
-    void attach(std::string&& name, F&& func)
+    bool isConnected()
     {
-        attach(std::move(name), typename DeduceLambdaSignature<decltype(&F::operator())>::type(func));
+        return connected;
     }
 
 
 protected:
-    virtual void send(const char* data, size_t size) = 0;
 
-    void handleMessage(const char* msg, int size)
+    void send(const char* data, size_t len, TokenType const& userToken) override
     {
-        EncoderType::decodeReq(msg, size, *this);
+        endpoint->send(data,len, userToken);
     }
-
 
 private:
-
-    friend EncoderType;
-
-
-    template<typename Handler>
-    void attach(std::string&& name, std::shared_ptr<Handler>&& handler)
+    void hookEvents()
     {
-        dispatchTable.emplace(std::forward<std::string>(name), handler);
-    }
-
-    template<typename TParams>
-    void exec(const std::string& method, int id, TParams& params)
-    {
-        auto itr = dispatchTable.find(method);
-        if(itr != dispatchTable.end())
-        {
-            auto& func= *(itr->second);
-            func(&id, params);
-        }
-    }
-
-    template<typename TParams>
-    void exec(const std::string& method, TParams& params)
-    {
-        auto itr = dispatchTable.find(method);
-        if(itr != dispatchTable.end())
-        {
-            auto& func = *(itr->second);
-            func(nullptr, params);
-        }
-    }
-
-
-    void error(const std::string& method, int id)
-    {
-        std::cerr << "ERROR:" << method << " " << id << std::endl;
-    }
-
-    void error(const std::string& method)
-    {
-        std::cerr << "ERROR:" << method << std::endl;
+        endpoint->MsgReceived.Attach(std::bind(&ServiceProvider::handleMessage, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+        endpoint->Connected.Attach([this](){ connected = true; this->Connected.Emit(); });
+        endpoint->Disconnected.Attach([this](){ connected = false; this->Disconnected.Emit(); });
+        endpoint->Listening.Attach([this](){ this->Listening.Emit(); });
+        endpoint->BindFailed.Attach([this](){ this->BindFailed.Emit(); });
+        endpoint->Accepted.Attach([this](){ this->Accepted.Emit(); });
+        endpoint->Closed.Attach([this](){ this->Closed.Emit(); });
 
     }
 
 
 private:
-    friend EncoderType;
+    std::unique_ptr<EndpointType> endpoint;
+    bool connected = false;
 
-    std::unordered_map<std::string, HandlerPtr> dispatchTable;
+
+
+
 };
 
-
-}
-}
-
-#endif // GRLX_RPC_SERVICEPROVIDER_H
+} // namespace rpc
+} // namespace grlx

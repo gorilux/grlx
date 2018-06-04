@@ -39,6 +39,7 @@
 #include <functional>
 #include <unordered_map>
 #include <unordered_set>
+#include <any>
 
 
 namespace grlx {
@@ -312,6 +313,7 @@ class None { public: };
 
 }
 
+using TokenType = std::any;
 
 }
 
