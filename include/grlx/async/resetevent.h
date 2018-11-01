@@ -43,6 +43,15 @@ public:
     ResetEvent(bool autoReset = false)
         : state( false ), autoReset( autoReset )
     {}
+
+    ResetEvent(const ResetEvent &) = delete;
+
+    ResetEvent(ResetEvent &&) noexcept = delete;
+
+    ResetEvent &operator=(const ResetEvent &) = delete;
+
+    ResetEvent &operator=(ResetEvent &&) noexcept = delete;
+
     void set()
     {
         std::unique_lock<std::mutex> lock(mtx);

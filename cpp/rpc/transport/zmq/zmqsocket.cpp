@@ -2,7 +2,9 @@
 
 #include <unordered_set>
 #include <grlx/fsm/statemachine.h>
+#ifndef ANDROID
 #include <glog/logging.h>
+#endif
 
 
 namespace grlx {
@@ -101,7 +103,7 @@ public:
 
         int rc = zmq_socket_monitor(ptr, monitorAddr.c_str(), events);
         if (rc != 0)
-            throw error_t ();
+            throw int();
 
 
         auto poller = serviceContainer->get<Poller>();

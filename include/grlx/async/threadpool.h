@@ -125,8 +125,8 @@ public:
 
         auto future = task->get_future();
 
-        std::function<void()> work = std::bind([task](){
-
+        std::function<void()> work = std::bind([task]()
+        {
             (*task)();
         });
 
