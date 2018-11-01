@@ -62,7 +62,7 @@ public:
 
         auto buffer = os.str();
 
-        send(buffer.c_str(), buffer.size());
+        send(buffer.data(), buffer.size());
 
     }
     template<typename Archive, typename ...TArgs>
