@@ -106,47 +106,49 @@ public:
         std::string str(buffer, size);
         std::istringstream is( str );
 
-        TInputArchive archive(is);
-        MsgType::Type msgType;
-
-        archive( cereal::make_nvp("msgtype", msgType ) );
-
-        switch(msgType)
         {
-            case MsgType::Invalid:
-            {
-                break;
-            }
-            case MsgType::Request:
-            {
-                int id;
-                std::string method;
-                archive( cereal::make_nvp("id", id ) );
-                archive( cereal::make_nvp("method", method ) );
+            TInputArchive archive(is);
+            MsgType::Type msgType;
 
-                handler.exec(method, id, archive, userToken);
+            archive( cereal::make_nvp("msgtype", msgType ) );
+
+            switch(msgType)
+            {
+                case MsgType::Invalid:
+                {
+                    break;
+                }
+                case MsgType::Request:
+                {
+                    int id;
+                    std::string method;
+                    archive( cereal::make_nvp("id", id ) );
+                    archive( cereal::make_nvp("method", method ) );
+
+                    handler.exec(method, id, archive, userToken);
 
 
+                    break;
+                }
+                case MsgType::Response:
+                {
+                    break;
+                }
+                case MsgType::Notification:
+                {
+                    std::string method;
+                    archive( cereal::make_nvp("method", method ) );
+                    // archive( cereal::make_nvp("params", params ) );
+                    handler.exec(method, archive, userToken);
+                    break;
+                }
+                case MsgType::Error:
+                {
+                    break;
+                }
+                default:
                 break;
             }
-            case MsgType::Response:
-            {
-                break;
-            }
-            case MsgType::Notification:
-            {
-                std::string method;
-                archive( cereal::make_nvp("method", method ) );
-                // archive( cereal::make_nvp("params", params ) );
-                handler.exec(method, archive, userToken);
-                break;
-            }
-            case MsgType::Error:
-            {
-                break;
-            }
-            default:
-            break;
         }
         return false;
     }
