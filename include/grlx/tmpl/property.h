@@ -40,7 +40,7 @@ public:
 
     using ValueType = ValueT;
 
-    Signal<void()> PropertyValueChanged;
+    Signal<void(Property const&)> Changed;
 
     Property()
     {
@@ -77,15 +77,16 @@ public:
 
          this->value = other.value;
          this->isSet = other.isSet;
-         PropertyValueChanged.Emit();
+         Changed.Emit(*this);
          return *this;
      }
 
     template<typename T>
     Property<ValueT>& operator= (const T& value)
     {
+        this->value = value;
         isSet = true;       
-        PropertyValueChanged.Emit();
+        Changed.Emit(*this);
         return *this;
     }
 
@@ -104,7 +105,7 @@ public:
         return other == this->value;
     }
 
-    explicit operator const ValueT&() const noexcept
+    operator const ValueT&() const noexcept
     {
         return value;
     }
@@ -116,7 +117,7 @@ public:
     void Clear()
     {
         isSet = false;
-        PropertyValueChanged.Emit();
+        Changed.Emit(*this);
     }
 
     const ValueT& Value() const
@@ -141,7 +142,7 @@ public:
     {
         ar(value);
         ar(isSet);
-        PropertyValueChanged.Emit();
+        Changed.Emit(*this);
     }
 
 private:

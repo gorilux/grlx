@@ -35,7 +35,7 @@
 
 #include <grlx/service/servicecontainer.h>
 #include <grlx/tmpl/signal.h>
-#include "serviceactivator.h"
+#include "servicedispatcher.h"
 #include "invoker.h"
 
 namespace grlx {

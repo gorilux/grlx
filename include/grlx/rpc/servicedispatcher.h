@@ -35,8 +35,8 @@
 #include <memory>
 #include <unordered_map>
 #include <unordered_set>
+#include <tuple>
 #include <grlx/async/asyncmanager.h>
-#include <grlx/tmpl/callfunc.h>
 #include <grlx/rpc/invoker.h>
 
 #include "utility.h"
@@ -49,7 +49,7 @@ namespace rpc
 {
 
 template<typename EncoderType, typename BaseType = Details::DummyBaseClass>
-class ServiceActivator : public BaseType
+class ServiceDispatcher : public BaseType
 {
 
 private:
@@ -68,18 +68,20 @@ private:
 
     struct HandlerBase
     {
-        HandlerBase(ServiceActivator* self) : _self(self){}
+        HandlerBase(ServiceDispatcher* self) : _self(self){}
 
         virtual void operator()(const int* id, typename EncoderType::ParamsType&  params, TokenType const& userToken) = 0;
 
-        ServiceActivator *_self;
+        virtual std::type_index typeIndex() const = 0;
+
+        ServiceDispatcher *_self;
     };
 
     template<typename TSignature>
     struct Handler : HandlerBase
     {
 
-        Handler(ServiceActivator* self)
+        Handler(ServiceDispatcher* self)
             : HandlerBase(self) {}
 
         std::function<TSignature> proc;
@@ -92,7 +94,8 @@ private:
 
             EncoderType::decodeType(params, args);
 
-            return grlx::callFunc(func, args);
+            //return grlx::callFunc(func, args);
+            return std::apply(func, args);
         }
 
         template<typename TParams, typename ...ArgsT>
@@ -125,7 +128,12 @@ private:
             });
         }
 
-        void operator ()(const int* id, typename EncoderType::ParamsType& params, TokenType const& userToken)
+        std::type_index typeIndex() const override
+        {
+            return std::type_index(typeid(TSignature));
+        }
+
+        void operator ()(const int* id, typename EncoderType::ParamsType& params, TokenType const& userToken) override
         {
             if( id == nullptr)
             {
@@ -144,15 +152,15 @@ public:
 
 
     using DataHandler = std::function<int(const char*, int)>;
-    using Type = ServiceActivator< EncoderType, BaseType>;
+    using Type = ServiceDispatcher< EncoderType, BaseType>;
 
     template<typename ...TArgs>
-    ServiceActivator( TArgs&&... args)
+    ServiceDispatcher( TArgs&&... args)
         : BaseType(std::forward<TArgs>(args)...)
     {
 
     }
-    virtual ~ServiceActivator(){}
+    virtual ~ServiceDispatcher(){}
 
 
     template<typename R, typename C, typename ...ArgsT>
@@ -195,9 +203,10 @@ public:
 
         using HandlerType = Handler<TSignature>;
 
+
         auto handler = std::make_shared< HandlerType >( this );
 
-        std::swap(handler->proc, func);
+        std::swap(handler->proc, func);                
 
         this->attach(std::forward<std::string>(name), std::move(handler));
     }
@@ -226,6 +235,7 @@ private:
     template<typename Handler>
     void attach(std::string&& name, std::shared_ptr<Handler>&& handler)
     {
+        std::string signature = handler->typeIndex().name();
         dispatchTable.emplace(std::forward<std::string>(name), handler);
     }
 

@@ -28,6 +28,7 @@ Product {
     ]
     files: [       
         "include/**/*.h",
+        "include/**/*.hpp",
         "cpp/**/*.cpp"
     ]
 

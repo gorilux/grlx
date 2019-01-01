@@ -71,7 +71,9 @@ public:
         archive( cereal::make_nvp("msgtype", MsgType::Request ) );
         archive( cereal::make_nvp("id", msg.id ));
         archive( cereal::make_nvp("method", msg.method ));
+        archive( cereal::make_nvp("paramcount", msg.numArgs ));
         archive( cereal::make_nvp("params", msg.args ));
+
 
     }
 
@@ -80,6 +82,7 @@ public:
     {
         archive( cereal::make_nvp("msgtype", MsgType::Notification ) );
         archive( cereal::make_nvp("method", msg.method ));
+        archive( cereal::make_nvp("paramcount", msg.numArgs ));
         archive( cereal::make_nvp("params", msg.args ));
     }
 
@@ -122,9 +125,11 @@ public:
                 {
                     int id;
                     std::string method;
+                    int paramCount;
+                    std::string signature;
                     archive( cereal::make_nvp("id", id ) );
                     archive( cereal::make_nvp("method", method ) );
-
+                    archive( cereal::make_nvp("paramcount",  paramCount));
                     handler.exec(method, id, archive, userToken);
 
 
@@ -137,8 +142,9 @@ public:
                 case MsgType::Notification:
                 {
                     std::string method;
+                    int paramCount;
                     archive( cereal::make_nvp("method", method ) );
-                    // archive( cereal::make_nvp("params", params ) );
+                    archive( cereal::make_nvp("paramcount",  paramCount));
                     handler.exec(method, archive, userToken);
                     break;
                 }

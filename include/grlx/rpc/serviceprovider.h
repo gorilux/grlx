@@ -35,7 +35,7 @@
 #include <grlx/service/servicecontainer.h>
 #include <grlx/tmpl/signal.h>
 
-#include "serviceactivator.h"
+#include "servicedispatcher.h"
 
 namespace grlx
 {
@@ -44,7 +44,7 @@ namespace rpc
 
 
 template<typename EncoderType, typename Endpoint>
-class ServiceProvider : public ServiceActivator<EncoderType, Details::DummyBaseClass >
+class ServiceProvider : public ServiceDispatcher<EncoderType, Details::DummyBaseClass >
 {
 
 public:

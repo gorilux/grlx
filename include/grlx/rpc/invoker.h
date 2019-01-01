@@ -37,6 +37,7 @@
 #include <functional>
 #include <memory>
 #include <unordered_map>
+#include <tuple>
 
 #include <grlx/async/asyncmanager.h>
 #include <grlx/tmpl/callfunc.h>
@@ -74,33 +75,6 @@ public:
     }
     virtual ~Invoker(){}
 
-
-    // template<typename R, typename... TArgs>
-    // std::future<R> execute(std::string&& procName, TArgs&&... args )
-    // {
-    //     auto promise = std::make_shared<std::promise<R>>();
-
-    //     auto asyncOp = asyncManager.createOperation(
-    //         [promise](typename EncoderType::ResultType const& result)
-    //         {
-    //             R res;
-    //             EncoderType::decodeType(result, res);
-    //             promise->set_value(res);
-    //         });
-
-    //     Request<TArgs...> request(std::forward<std::string>(procName),
-    //                               asyncOp->id(),
-    //                               std::forward<TArgs>(args)...);
-
-    //     EncoderType::encode(request, [&](const char* data, size_t size)
-    //     {
-    //         this->send(data,size);
-    //     });
-
-    //     return promise->get_future();
-
-    // }
-
     template<typename R, typename... TArgs>
     auto execute(std::string&& procName, TArgs&&... args )
             -> typename std::enable_if<!std::is_void<R>::value, std::future<R> >::type
@@ -115,7 +89,7 @@ public:
                 promise->set_value(res);
             });
 
-        Request<TArgs...> request(std::forward<std::string>(procName),
+        Request<R, TArgs...> request(std::forward<std::string>(procName),
                                   asyncOp->id(),
                                   std::forward<TArgs>(args)...);
 
@@ -140,7 +114,7 @@ public:
                 promise->set_value();
             });
 
-        Request<TArgs...> request(std::forward<std::string>(procName),
+        Request<R, TArgs...> request(std::forward<std::string>(procName),
                                   asyncOp->id(),
                                   std::forward<TArgs>(args)...);
 
@@ -167,7 +141,7 @@ public:
                 //f( res );
             });
 
-        Request<TArgs...> request(std::forward<std::string>(procName),
+        Request<R, TArgs...> request(std::forward<std::string>(procName),
                                   asyncOp->id(),
                                   std::forward<TArgs>(args)...);
 
@@ -191,7 +165,7 @@ public:
                 //f();
             });
 
-        Request<TArgs...> request(std::forward<std::string>(procName),
+        Request<R, TArgs...> request(std::forward<std::string>(procName),
                                   asyncOp->id(),
                                   std::forward<TArgs>(args)...);
 
