@@ -30,7 +30,7 @@ inline void load( Archive & archive, QString& str )
 template<class Archive>
 void load(Archive & archive, QByteArray& byteArray)
 {
-    int size;
+    size_t size;
     archive( cereal::make_size_tag( size ) );
     byteArray.resize(  size  );
     for(auto && v : byteArray)
@@ -40,7 +40,7 @@ void load(Archive & archive, QByteArray& byteArray)
 template<class Archive>
 void save(Archive & archive, QByteArray const& byteArray)
 {
-    archive( cereal::make_size_tag( static_cast<int>(byteArray.size()) ) ); // number of elements
+    archive( cereal::make_size_tag( static_cast<size_t>(byteArray.size()) ) ); // number of elements
     for(auto && v : byteArray)
       archive( v );
 }
@@ -71,10 +71,10 @@ void save(Archive & archive, QVariant const& m)
 template<class Archive, typename K, typename V>
 void load(Archive & archive, QHash<K,V>& map)
 {
-    int size;
+    size_t size;
     archive( cereal::make_size_tag( size ) );
     map.clear();
-    for( int i = 0; i < size; ++i )
+    for( size_t i = 0; i < size; ++i )
     {
         K key;
         V value;
@@ -87,7 +87,7 @@ void load(Archive & archive, QHash<K,V>& map)
 template<class Archive, typename K, typename V>
 void save(Archive & archive, QHash<K,V> const& map)
 {
-    archive( cereal::make_size_tag( static_cast<int>(map.size()) ) );
+    archive( cereal::make_size_tag( static_cast<size_t>(map.size()) ) );
 
     for( const auto & k : map.keys() )
     {
@@ -100,7 +100,7 @@ void save(Archive & archive, QHash<K,V> const& map)
 template<class Archive, typename T>
 void load(Archive & archive, QVector<T>& vector)
 {
-    int size;
+    size_t size;
     archive( cereal::make_size_tag( size ) );
 
     vector.resize(size);
@@ -113,7 +113,7 @@ void load(Archive & archive, QVector<T>& vector)
 template<class Archive, typename T>
 void save(Archive & archive,  QVector<T> const& vector)
 {
-    archive( cereal::make_size_tag( static_cast<int>(vector.size()) ) ); // number of elements
+    archive( cereal::make_size_tag( static_cast<size_t>(vector.size()) ) ); // number of elements
 
     for(auto && v : vector)
     {

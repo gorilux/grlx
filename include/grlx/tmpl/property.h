@@ -105,10 +105,13 @@ public:
         return other == this->value;
     }
 
+
     operator const ValueT&() const noexcept
     {
         return value;
     }
+
+
 
     bool IsSet()
     {

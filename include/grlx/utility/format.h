@@ -29,6 +29,7 @@
 #define GRLX_UTILITY_FORMAT_H
 
 #include <string>
+#include <cstring>
 #include <cstdio>
 #include <memory>
 #include <cstdarg>
@@ -56,7 +57,7 @@ inline std::string format(const std::string fmt_str, ...)
     va_list ap;
     while(1) {
         formatted.reset(new char[n]); /* Wrap the plain char array into the unique_ptr */
-        strcpy(&formatted[0], fmt_str.c_str());
+        std::strcpy(&formatted[0], fmt_str.c_str());
         va_start(ap, fmt_str);
         final_n = vsnprintf(&formatted[0], n, fmt_str.c_str(), ap);
         va_end(ap);

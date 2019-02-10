@@ -57,6 +57,7 @@ private:
     class ServiceInfoBase
     {
     public:
+        virtual ~ServiceInfoBase(){}
         virtual std::shared_ptr<void> ServiceInstance() = 0;
 
 
