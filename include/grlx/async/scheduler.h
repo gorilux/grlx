@@ -36,6 +36,7 @@
 #include <iomanip>
 #include <exception>
 #include <iterator>
+#include <grlx/utility/cron.h>
 
 #include "resetevent.h"
 #include "threadpool.h"
@@ -53,124 +54,7 @@ using Clock = std::chrono::system_clock;
 class Scheduler
 {
 
-public:
-
-    class Cron {
-    public:
-        explicit Cron(const std::string &expression)
-        {
-            std::istringstream iss(expression);
-            std::vector<std::string> tokens{std::istream_iterator<std::string>{iss},
-                                            std::istream_iterator<std::string>{}};
-
-            if (tokens.size() != 5) throw BadCronExpression("malformed cron string (must be 5 fields): " + expression);
-
-            verifyAndSet(tokens[0], expression, minute     , 0, 59);
-            verifyAndSet(tokens[1], expression, hour       , 0, 23);
-            verifyAndSet(tokens[2], expression, day        , 1, 31);
-            verifyAndSet(tokens[3], expression, month      , 1, 12, true);
-            verifyAndSet(tokens[4], expression, day_of_week, 0, 6);
-        }
-
-        // http://stackoverflow.com/a/322058/1284550
-        Clock::time_point cronToNext(const Clock::time_point from = Clock::now()) const
-        {
-            // get current time as a tm object
-            auto now = Clock::to_time_t(from);
-            std::tm next(*std::localtime(&now));
-            // it will always at least run the next minute
-            next.tm_sec = 0;
-            add(next, std::chrono::minutes(1));            
-            while (true) {
-                if (month != -1 && next.tm_mon != month) {
-                    // add a month
-                    // if this will bring us over a year, increment the year instead and reset the month
-                    if (next.tm_mon + 1 > 11) {
-                        next.tm_mon = 0;
-                        next.tm_year++;
-                    } else
-                        next.tm_mon++;
-
-                    next.tm_mday = 1;
-                    next.tm_hour = 0;
-                    next.tm_min = 0;
-                    continue;
-                }
-                if (day != -1 && next.tm_mday != day) {
-                    add(next, std::chrono::hours(24));
-                    next.tm_hour = 0;
-                    next.tm_min = 0;
-                    continue;
-                }
-                if (day_of_week != -1 && next.tm_wday != day_of_week) {
-                    add(next, std::chrono::hours(24));
-                    next.tm_hour = 0;
-                    next.tm_min = 0;
-                    continue;
-                }
-                if (hour != -1 && next.tm_hour != hour) {
-                    add(next, std::chrono::hours(1));
-                    next.tm_min = 0;
-                    continue;
-                }
-                if (minute != -1 && next.tm_min != minute) {
-                    add(next, std::chrono::minutes(1));
-                    continue;
-                }
-                break;
-            }
-
-            // telling mktime to figure out dst
-            next.tm_isdst = -1;
-            return Clock::from_time_t(std::mktime(&next));
-        }
-
-        void add(std::tm &tm, Clock::duration time) const
-        {
-            auto tp = Clock::from_time_t(std::mktime(&tm));
-            auto tp_adjusted = tp + time;
-            auto tm_adjusted = Clock::to_time_t(tp_adjusted);
-            tm = *std::localtime(&tm_adjusted);
-        }
-
-        class BadCronExpression : public std::exception {
-        public:
-            explicit BadCronExpression(std::string msg) : msg_(std::move(msg)) {}
-
-            const char *what() const noexcept override { return (msg_.c_str()); }
-
-        private:
-            std::string msg_;
-        };
-
-        inline void
-        verifyAndSet(const std::string &token, const std::string &expression, int &field, const int lower_bound,
-                       const int upper_bound, const bool adjust = false) const {
-            if (token == "*")
-                field = -1;
-            else {
-                try {
-                    field = std::stoi(token);
-                } catch (const std::invalid_argument &) {
-                    throw BadCronExpression("malformed cron string (`" + token + "` not an integer or *): " + expression);
-                } catch (const std::out_of_range &) {
-                    throw BadCronExpression("malformed cron string (`" + token + "` not convertable to int): " + expression);
-                }
-                if (field < lower_bound || field > upper_bound) {
-                    std::ostringstream oss;
-                    oss << "malformed cron string ('" << token << "' must be <= " << upper_bound << " and >= " << lower_bound
-                        << "): " << expression;
-                    throw BadCronExpression(oss.str());
-                }
-                if (adjust)
-                    field--;
-            }
-        }
-
-
-        int minute, hour, day, month, day_of_week;
-    };
-
+public:    
 
     class Task
     {
@@ -205,7 +89,7 @@ public:
         template<typename F>
         CronTask(std::string const& expression, F&& f)
             : Task(std::move(f))
-            , cron(expression)
+            , cronexpr(grlx::cron::make_cron(std::string_view(expression)))
         {
 
         }
@@ -219,11 +103,11 @@ public:
             return true;
         }
         Clock::time_point getNextTime() override
-        {
-            return cron.cronToNext(Clock::now());
+        {            
+            return grlx::cron::cronToNext<Clock>(cronexpr, Clock::now());
         }
     private:
-        Cron cron;
+        grlx::cron::cronexpr cronexpr;
     };
     class EveryTask : public Task
     {
