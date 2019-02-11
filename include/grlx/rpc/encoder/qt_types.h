@@ -30,19 +30,17 @@ inline void load( Archive & archive, QString& str )
 template<class Archive>
 void load(Archive & archive, QByteArray& byteArray)
 {
-    size_t size;
+    cereal::size_type size;
     archive( cereal::make_size_tag( size ) );
-    byteArray.resize(  size  );
-    for(auto && v : byteArray)
-      archive( v );
+    byteArray.resize(  static_cast<cereal::size_type>(size)  );
+    archive( cereal::binary_data( byteArray.data(), byteArray.size() * sizeof(char) ) );
 }
 
 template<class Archive>
 void save(Archive & archive, QByteArray const& byteArray)
 {
-    archive( cereal::make_size_tag( static_cast<size_t>(byteArray.size()) ) ); // number of elements
-    for(auto && v : byteArray)
-      archive( v );
+    archive( cereal::make_size_tag( static_cast<cereal::size_type>(byteArray.size()) ) ); // number of elements
+    archive( cereal::binary_data( byteArray.data(), byteArray.size() * sizeof(char) ) );
 }
 
 
@@ -53,6 +51,7 @@ void load(Archive & archive, QVariant& m)
     archive(data);
     {
         QDataStream s(&data, QIODevice::ReadOnly);
+        s.setVersion(QDataStream::Qt_5_11);
         s >> m;
     }
 }
@@ -63,6 +62,7 @@ void save(Archive & archive, QVariant const& m)
     QByteArray data;
     {
         QDataStream s(&data, QIODevice::ReadWrite);
+        s.setVersion(QDataStream::Qt_5_11);
         s << m;
     }
     archive(data);
