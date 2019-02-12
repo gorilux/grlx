@@ -396,7 +396,28 @@ void ZMQSocket::onDataAvailable()
     zmq::message_t msg;
     if(receiveMsg(&msg, ZMQ_DONTWAIT))
     {
-        MsgReceived.Emit(static_cast<const char*>(msg.data()), msg.size(), nullptr);
+        std::vector<char> buffer(static_cast<const char*>(msg.data()), static_cast<const char*>(msg.data()) + msg.size());
+        uint32_t more = 0;
+        size_t moresz = sizeof(more);
+
+        while(true)
+        {
+            fsm->zmq_socket->getsockopt(ZMQ_RCVMORE, &more, &moresz);
+
+            if(more && receiveMsg(&msg, ZMQ_DONTWAIT))
+            {
+                auto first = static_cast<const char*>(msg.data());
+                auto last = static_cast<const char*>(msg.data()) + msg.size();
+                buffer.insert(buffer.end(), first, last);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+
+        MsgReceived.Emit(static_cast<const char*>(buffer.data()), buffer.size(), nullptr);
     }
     else
     {
