@@ -71,7 +71,7 @@ void save(Archive & archive, QVariant const& m)
 template<class Archive, typename K, typename V>
 void load(Archive & archive, QHash<K,V>& map)
 {
-    size_t size;
+    cereal::size_type  size;
     archive( cereal::make_size_tag( size ) );
     map.clear();
     for( size_t i = 0; i < size; ++i )
@@ -87,7 +87,7 @@ void load(Archive & archive, QHash<K,V>& map)
 template<class Archive, typename K, typename V>
 void save(Archive & archive, QHash<K,V> const& map)
 {
-    archive( cereal::make_size_tag( static_cast<size_t>(map.size()) ) );
+    archive( cereal::make_size_tag(static_cast<cereal::size_type>(map.size()) ) );
 
     for( const auto & k : map.keys() )
     {
@@ -100,7 +100,7 @@ void save(Archive & archive, QHash<K,V> const& map)
 template<class Archive, typename T>
 void load(Archive & archive, QVector<T>& vector)
 {
-    size_t size;
+    cereal::size_type size;
     archive( cereal::make_size_tag( size ) );
 
     vector.resize(size);
@@ -113,7 +113,7 @@ void load(Archive & archive, QVector<T>& vector)
 template<class Archive, typename T>
 void save(Archive & archive,  QVector<T> const& vector)
 {
-    archive( cereal::make_size_tag( static_cast<size_t>(vector.size()) ) ); // number of elements
+    archive( cereal::make_size_tag( static_cast<cereal::size_type>(vector.size()) ) ); // number of elements
 
     for(auto && v : vector)
     {
