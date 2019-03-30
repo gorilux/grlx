@@ -138,7 +138,6 @@ public:
                 R res;
                 EncoderType::decodeType(result, res);
                 threadPool.schedule(std::move(f), std::move(res) );
-                //f( res );
             });
 
         Request<R, TArgs...> request(std::forward<std::string>(procName),
@@ -162,7 +161,6 @@ public:
             [f = std::move(callback), this ](typename EncoderType::ResultType const& result)
             {
                 threadPool.schedule(std::move(f));
-                //f();
             });
 
         Request<R, TArgs...> request(std::forward<std::string>(procName),

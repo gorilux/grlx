@@ -54,17 +54,17 @@ class ServiceDispatcher : public BaseType
 
 private:
 
-    template<typename T>
-    struct DeduceLambdaSignature
-    {
-        using type = void;
-    };
+//    template<typename T>
+//    struct DeduceLambdaSignature
+//    {
+//        using type = void;
+//    };
 
-    template<typename Ret, typename Class, typename... Args>
-    struct DeduceLambdaSignature<Ret(Class::*)(Args...) const>
-    {
-        using type = std::function<Ret(Args...)>;
-    };
+//    template<typename Ret, typename Class, typename... Args>
+//    struct DeduceLambdaSignature<Ret(Class::*)(Args...) const>
+//    {
+//        using type = std::function<Ret(Args...)>;
+//    };
 
     struct HandlerBase
     {
