@@ -187,7 +187,7 @@ inline std::string to_string(cronexpr const & cex)
 namespace utils
 {
 inline std::time_t tm_to_time(std::tm& date)
-{
+{    
     return std::mktime(&date);
 }
 
@@ -443,8 +443,8 @@ inline void add_to_field(std::tm& date, cron_field const field, int const val)
             break;
     }
 
-    if (INVALID_TIME == utils::tm_to_time(date))
-        throw bad_cronexpr("Invalid time expression");
+//    if (INVALID_TIME == utils::tm_to_time(date))
+//        throw bad_cronexpr("Invalid time expression");
 }
 
 inline void set_field( std::tm& date, cron_field const field, int const val)
@@ -474,8 +474,8 @@ inline void set_field( std::tm& date, cron_field const field, int const val)
             break;
     }
 
-    if (INVALID_TIME == utils::tm_to_time(date))
-        throw bad_cronexpr("Invalid time expression");
+//    if (INVALID_TIME == utils::tm_to_time(date))
+//        throw bad_cronexpr("Invalid time expression");
 }
 
 inline void reset_field( std::tm& date, cron_field const field)
@@ -505,8 +505,8 @@ inline void reset_field( std::tm& date, cron_field const field)
             break;
     }
 
-    if (INVALID_TIME == utils::tm_to_time(date))
-        throw bad_cronexpr("Invalid time expression");
+//    if (INVALID_TIME == utils::tm_to_time(date))
+//        throw bad_cronexpr("Invalid time expression");
 }
 
 inline void reset_all_fields( std::tm& date, std::bitset<7> const & marked_fields)
@@ -540,7 +540,7 @@ static size_t find_next(std::bitset<N> const & target, std::tm& date,
     auto next_value = next_set_bit(target, minimum, maximum, value);
     if (INVALID_INDEX == next_value)
     {
-        add_to_field(date, next_field, 1);
+        add_to_field(date, next_field, 1);       
         reset_field(date, field);
         next_value = next_set_bit(target, minimum, maximum, 0);
     }
