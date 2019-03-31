@@ -443,8 +443,8 @@ inline void add_to_field(std::tm& date, cron_field const field, int const val)
             break;
     }
 
-//    if (INVALID_TIME == utils::tm_to_time(date))
-//        throw bad_cronexpr("Invalid time expression");
+    if (INVALID_TIME == utils::tm_to_time(date))
+        throw bad_cronexpr("Invalid time expression");
 }
 
 inline void set_field( std::tm& date, cron_field const field, int const val)
@@ -474,8 +474,8 @@ inline void set_field( std::tm& date, cron_field const field, int const val)
             break;
     }
 
-//    if (INVALID_TIME == utils::tm_to_time(date))
-//        throw bad_cronexpr("Invalid time expression");
+    if (INVALID_TIME == utils::tm_to_time(date))
+        throw bad_cronexpr("Invalid time expression");
 }
 
 inline void reset_field( std::tm& date, cron_field const field)
@@ -563,8 +563,10 @@ static size_t find_next_day( std::tm& date, std::bitset<31> const & days_of_mont
 {
     unsigned int count = 0;
     unsigned int maximum = 366;
-    while((!days_of_month.test(day_of_month - Traits::CRON_MIN_DAYS_OF_MONTH) ||
-           !days_of_week.test(day_of_week - Traits::CRON_MIN_DAYS_OF_WEEK)) && count++ < maximum)
+    auto day_of_month_idx = (day_of_month - Traits::CRON_MIN_DAYS_OF_MONTH);
+    auto day_of_week_idx = (day_of_week - Traits::CRON_MIN_DAYS_OF_WEEK);
+    while((!days_of_month.test(day_of_month_idx) ||
+           !days_of_week.test(day_of_week_idx)) && count++ < maximum)
     {
         add_to_field(date, cron_field::day_of_month, 1);
         day_of_month = date.tm_mday;
