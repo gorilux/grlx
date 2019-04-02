@@ -332,36 +332,37 @@ private:
     {
         std::lock_guard sync(lock);
 
-        decltype (tasks) recurringTasks;
 
-        for(auto itr = tasks.begin(); itr != tasks.end(); )
-        {
-            if(itr->first <= Clock::now())
+        auto endOfTasksToExec = tasks.upper_bound(Clock::now());
+
+        if(endOfTasksToExec != tasks.begin()){
+
+            decltype (tasks) recurringTasks;
+
+            for(auto itr = tasks.begin(); itr != endOfTasksToExec; itr++)
             {
                 auto task = itr->second;
                 threadPool.schedule([task]()
                 {
-                    task->exec();                    
-                });                
+                    task->exec();
+                });
 
                 if(task->recurrent())
                 {
                     auto nextTime = task->getNextTime();
                     recurringTasks.emplace(nextTime, std::move(task));
                 }
-
-                itr = tasks.erase(itr);
             }
-            else
+
+            tasks.erase(tasks.begin(), endOfTasksToExec);
+
+            if(!recurringTasks.empty())
             {
-                itr++;
+                tasks.insert(recurringTasks.begin(), recurringTasks.end());
             }
+
         }
 
-        if(!recurringTasks.empty())
-        {
-            tasks.insert(recurringTasks.begin(), recurringTasks.end());
-        }
 
 
     }
