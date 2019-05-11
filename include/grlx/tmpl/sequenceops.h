@@ -189,23 +189,6 @@ struct Fold
 };
 
 
-//template<int N>
-//struct Int
-//{
-//    using type = typename std::integral_constant<int, N>::type;
-//};
-
-//template< int N, typename Sequence>
-//inline typename std::ref< typename TypeAt<Sequence, Int<N> >::Type >::type Ref(Sequence& seq)
-//{
-//    return At<Sequence, Int<N> >::ValueRef(seq);
-//}
-
-//template< int N, typename Sequence>
-//inline typename std::cref< typename TypeAt<Sequence, Int<N> >::Type >::type Get(const Sequence& seq)
-//{
-//    return At<Sequence, Int<N> >::Value(seq);
-//}
 
 }
 #endif // SEQUENCEOPS_H

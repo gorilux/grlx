@@ -15,7 +15,7 @@ Product {
 
 
     cpp.cxxLanguageVersion: "c++17";
-    cpp.cxxFlags: ["-Wno-unused-parameter","-Wno-gnu-string-literal-operator-template"]
+    cpp.cxxFlags: ["-Wno-unused-parameter"]
 
     //type: ["dynamiclibrary"]
     type: ["staticlibrary"]
