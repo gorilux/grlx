@@ -206,7 +206,7 @@ inline std::tm to_tm(std::string_view time)
     std::istringstream str(time.data());
     str.imbue(std::locale(setlocale(LC_ALL, nullptr)));
 
-    std::tm result{0};
+    std::tm result{0,0,0,0,0,0,0,0,0,0,0};
     str >> std::get_time(&result, "%Y-%m-%d %H:%M:%S");
     if (str.fail()) throw std::runtime_error("Parsing date failed!");
 
@@ -266,7 +266,7 @@ inline cron_int to_cron_int(std::string_view text)
     }
 }
 
-static std::string replace_ordinals(
+static inline std::string replace_ordinals(
         std::string text,
         std::vector<std::string> const & replacement)
 {
@@ -280,7 +280,7 @@ static std::string replace_ordinals(
     return text;
 }
 
-static std::pair<cron_int, cron_int> make_range(
+static inline std::pair<cron_int, cron_int> make_range(
         std::string_view field,
         cron_int const minval,
         cron_int const maxval)

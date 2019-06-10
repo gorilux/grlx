@@ -40,7 +40,7 @@ public:
     }
 
     ServiceProvider()
-        : ServiceProvider(ServiceContainerFactory::create())
+        : ServiceProvider(ServiceContainer::globalInstance())
     {
     }
     virtual ~ServiceProvider()

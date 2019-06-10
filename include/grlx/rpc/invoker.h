@@ -53,7 +53,7 @@ public:
         auto promise = std::make_shared<std::promise<R>>();
 
         auto asyncOp = asyncManager.createOperation(
-            [promise,this](typename EncoderType::ResultType& result)
+            [promise](typename EncoderType::ResultType& result)
             {
                 R res;
                 EncoderType::decodeType(result, res);
@@ -80,7 +80,7 @@ public:
         auto promise = std::make_shared<std::promise<void>>();
 
         auto asyncOp = asyncManager.createOperation(
-            [promise,this](typename EncoderType::ResultType& result)
+            [promise](typename EncoderType::ResultType& result)
             {
                 promise->set_value();
             });

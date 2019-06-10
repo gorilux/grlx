@@ -30,6 +30,7 @@ private:
     struct HandlerBase
     {
         HandlerBase(ServiceDispatcher* self) : _self(self){}
+        virtual ~HandlerBase(){}
 
         virtual void operator()(const int* id, typename EncoderType::ParamsType&  params, TokenType const& userToken) = 0;
 
