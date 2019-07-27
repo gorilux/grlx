@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef GRLX_TMPL_BITMASK_H
 #define GRLX_TMPL_BITMASK_H
 
