@@ -41,7 +41,7 @@ Product {
             "include"
         ]
 
-        cpp.defines: ["RAPIDJSON_HAS_STDSTRING", "RAPIDJSON_HAS_CXX11_RVALUE_REFS", "PETRA_USE_UDL"]
+        cpp.defines: [ "ASIO_STANDALONE", "RAPIDJSON_HAS_STDSTRING", "RAPIDJSON_HAS_CXX11_RVALUE_REFS", "PETRA_USE_UDL"]
 
         cpp.cxxLanguageVersion: "c++17";
         cpp.cxxFlags: ["-Wno-unused-parameter", "-Wno-gnu-string-literal-operator-template"]
