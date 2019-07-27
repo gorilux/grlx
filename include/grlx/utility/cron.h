@@ -187,7 +187,7 @@ inline std::string to_string(cronexpr const & cex)
 namespace utils
 {
 inline std::time_t tm_to_time(std::tm& date)
-{
+{    
     return std::mktime(&date);
 }
 
@@ -206,7 +206,7 @@ inline std::tm to_tm(std::string_view time)
     std::istringstream str(time.data());
     str.imbue(std::locale(setlocale(LC_ALL, nullptr)));
 
-    std::tm result{0};
+    std::tm result{0,0,0,0,0,0,0,0,0,0,0};
     str >> std::get_time(&result, "%Y-%m-%d %H:%M:%S");
     if (str.fail()) throw std::runtime_error("Parsing date failed!");
 
@@ -266,7 +266,7 @@ inline cron_int to_cron_int(std::string_view text)
     }
 }
 
-static std::string replace_ordinals(
+static inline std::string replace_ordinals(
         std::string text,
         std::vector<std::string> const & replacement)
 {
@@ -280,7 +280,7 @@ static std::string replace_ordinals(
     return text;
 }
 
-static std::pair<cron_int, cron_int> make_range(
+static inline std::pair<cron_int, cron_int> make_range(
         std::string_view field,
         cron_int const minval,
         cron_int const maxval)
@@ -505,8 +505,8 @@ inline void reset_field( std::tm& date, cron_field const field)
             break;
     }
 
-    if (INVALID_TIME == utils::tm_to_time(date))
-        throw bad_cronexpr("Invalid time expression");
+//    if (INVALID_TIME == utils::tm_to_time(date))
+//        throw bad_cronexpr("Invalid time expression");
 }
 
 inline void reset_all_fields( std::tm& date, std::bitset<7> const & marked_fields)
@@ -540,7 +540,7 @@ static size_t find_next(std::bitset<N> const & target, std::tm& date,
     auto next_value = next_set_bit(target, minimum, maximum, value);
     if (INVALID_INDEX == next_value)
     {
-        add_to_field(date, next_field, 1);
+        add_to_field(date, next_field, 1);       
         reset_field(date, field);
         next_value = next_set_bit(target, minimum, maximum, 0);
     }
@@ -563,8 +563,10 @@ static size_t find_next_day( std::tm& date, std::bitset<31> const & days_of_mont
 {
     unsigned int count = 0;
     unsigned int maximum = 366;
-    while((!days_of_month.test(day_of_month - Traits::CRON_MIN_DAYS_OF_MONTH) ||
-           !days_of_week.test(day_of_week - Traits::CRON_MIN_DAYS_OF_WEEK)) && count++ < maximum)
+    auto day_of_month_idx = (day_of_month - Traits::CRON_MIN_DAYS_OF_MONTH);
+    auto day_of_week_idx = (day_of_week - Traits::CRON_MIN_DAYS_OF_WEEK);
+    while((!days_of_month.test(day_of_month_idx) ||
+           !days_of_week.test(day_of_week_idx)) && count++ < maximum)
     {
         add_to_field(date, cron_field::day_of_month, 1);
         day_of_month = date.tm_mday;

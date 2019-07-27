@@ -38,6 +38,8 @@
 #include <iterator>
 #include <grlx/utility/cron.h>
 
+#include <iostream>
+
 #include "resetevent.h"
 #include "threadpool.h"
 
@@ -49,6 +51,16 @@ namespace async
 
 using Clock = std::chrono::system_clock;
 
+template<typename ClockT>
+std::string timeToString(typename ClockT::time_point time)
+{
+
+    auto in_time_t = ClockT::to_time_t(time);
+    std::stringstream ss;
+    ss << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d %X");
+    return ss.str();
+
+}
 
 
 class Scheduler
@@ -181,7 +193,7 @@ public:
                 }
                 else
                 {
-                    auto timeOfFirstTask = (*tasks.begin()).first;
+                    auto timeOfFirstTask = (*tasks.begin()).first;                    
                     processTaskEvent.wait_until(timeOfFirstTask);
                 }
 
@@ -205,8 +217,7 @@ public:
     {
         done = true;
         processTaskEvent.set();
-    }
-
+    }       
 
     template<typename F, typename ...ArgsT>
     auto every(Clock::duration time, F &&f, ArgsT&&... args)
@@ -321,35 +332,37 @@ private:
     {
         std::lock_guard sync(lock);
 
-        decltype (tasks) recurringTasks;
 
-        for(auto itr = tasks.begin(); itr != tasks.end(); )
-        {
-            if(itr->first <= Clock::now())
+        auto endOfTasksToExec = tasks.upper_bound(Clock::now());
+
+        if(endOfTasksToExec != tasks.begin()){
+
+            decltype (tasks) recurringTasks;
+
+            for(auto itr = tasks.begin(); itr != endOfTasksToExec; itr++)
             {
                 auto task = itr->second;
                 threadPool.schedule([task]()
                 {
-                    task->exec();                    
-                });                
+                    task->exec();
+                });
 
                 if(task->recurrent())
                 {
-                    recurringTasks.emplace(task->getNextTime(), std::move(task));
+                    auto nextTime = task->getNextTime();
+                    recurringTasks.emplace(nextTime, std::move(task));
                 }
-
-                itr = tasks.erase(itr);
             }
-            else
+
+            tasks.erase(tasks.begin(), endOfTasksToExec);
+
+            if(!recurringTasks.empty())
             {
-                itr++;
+                tasks.insert(recurringTasks.begin(), recurringTasks.end());
             }
+
         }
 
-        if(!recurringTasks.empty())
-        {
-            tasks.insert(recurringTasks.begin(), recurringTasks.end());
-        }
 
 
     }

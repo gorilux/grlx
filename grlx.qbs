@@ -15,7 +15,9 @@ Product {
 
 
     cpp.cxxLanguageVersion: "c++17";
-    cpp.cxxFlags: ["-Wno-unused-parameter","-Wno-gnu-string-literal-operator-template"]
+    cpp.cxxFlags: ["-Wno-unused-parameter",
+                   "-Wno-gnu-string-literal-operator-template",
+                   "-Wno-unused-private-field"]
 
     //type: ["dynamiclibrary"]
     type: ["staticlibrary"]
@@ -44,7 +46,10 @@ Product {
         cpp.defines: [ "ASIO_STANDALONE", "RAPIDJSON_HAS_STDSTRING", "RAPIDJSON_HAS_CXX11_RVALUE_REFS", "PETRA_USE_UDL"]
 
         cpp.cxxLanguageVersion: "c++17";
-        cpp.cxxFlags: ["-Wno-unused-parameter", "-Wno-gnu-string-literal-operator-template"]
+        cpp.cxxFlags: ["-Wno-unused-parameter",
+                       "-Wno-gnu-string-literal-operator-template",
+                       "-Wno-unused-private-field"]
+        
         //cpp.cxxStandardLibrary: "libstdc++";
 
         //cpp.libraryPath: xyzPath + "/lib"

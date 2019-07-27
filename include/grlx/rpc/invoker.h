@@ -1,33 +1,4 @@
 #pragma once
-////////////////////////////////////////////////////////////////////////////////
-/// @brief
-///
-/// @file
-///
-/// DISCLAIMER
-///
-/// Copyright 2015 David Salvador Pinheiro
-///
-/// Licensed under the Apache License, Version 2.0 (the "License");
-/// you may not use this file except in compliance with the License.
-/// You may obtain a copy of the License at
-///
-///     http://www.apache.org/licenses/LICENSE-2.0
-///
-/// Unless required by applicable law or agreed to in writing, software
-/// distributed under the License is distributed on an "AS IS" BASIS,
-/// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-/// See the License for the specific language governing permissions and
-/// limitations under the License.
-///
-/// Copyright holder is David Salvador Pinheiro
-///
-/// @author David Salvador Pinheiro
-/// @author Copyright 2015, David Salvador Pinheiro
-////////////////////////////////////////////////////////////////////////////////
-
-#ifndef GRLX_RPC_INVOKER_H
-#define GRLX_RPC_INVOKER_H
 
 
 #include <type_traits>
@@ -82,7 +53,7 @@ public:
         auto promise = std::make_shared<std::promise<R>>();
 
         auto asyncOp = asyncManager.createOperation(
-            [promise,this](typename EncoderType::ResultType& result)
+            [promise](typename EncoderType::ResultType& result)
             {
                 R res;
                 EncoderType::decodeType(result, res);
@@ -109,7 +80,7 @@ public:
         auto promise = std::make_shared<std::promise<void>>();
 
         auto asyncOp = asyncManager.createOperation(
-            [promise,this](typename EncoderType::ResultType& result)
+            [promise](typename EncoderType::ResultType& result)
             {
                 promise->set_value();
             });
@@ -138,7 +109,6 @@ public:
                 R res;
                 EncoderType::decodeType(result, res);
                 threadPool.schedule(std::move(f), std::move(res) );
-                //f( res );
             });
 
         Request<R, TArgs...> request(std::forward<std::string>(procName),
@@ -162,7 +132,6 @@ public:
             [f = std::move(callback), this ](typename EncoderType::ResultType const& result)
             {
                 threadPool.schedule(std::move(f));
-                //f();
             });
 
         Request<R, TArgs...> request(std::forward<std::string>(procName),
@@ -220,7 +189,3 @@ private:
 
 }
 }
-
-
-
-#endif // GRLX_RPC_INVOKER_H

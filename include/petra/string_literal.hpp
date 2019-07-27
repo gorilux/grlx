@@ -75,13 +75,12 @@ namespace petra {
         tmp{}, std::make_index_sequence<sizeof(Value)>{});                     \
   }()
 
-#ifdef PETRA_USE_UDL
   namespace literals {
     template<typename T, T... Pack>
     constexpr auto operator"" _s() {
       return string_literal<T, Pack...>{};
     }
   }  // namespace literals
-#endif
+
 
 }  // namespace petra

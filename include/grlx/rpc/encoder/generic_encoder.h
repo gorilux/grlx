@@ -30,6 +30,7 @@
 #include <cereal/types/unordered_set.hpp>
 #include <cereal/types/utility.hpp>
 #include <cereal/types/vector.hpp>
+#include <cereal/types/variant.hpp>
 
 
 

@@ -64,6 +64,9 @@ public:
         : _id(id),
           _asyncManager(asyncManager){}
 
+    virtual ~AsyncOperationBase(){
+    }
+
     const IDType& id() const
     {
         return _id;
