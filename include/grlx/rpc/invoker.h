@@ -53,26 +53,32 @@ namespace grlx
 namespace rpc
 {
 
-template<typename EncoderType, typename BaseType = Details::DummyBaseClass, typename DerivedType = Details::None >
-class Invoker: public BaseType
+template<typename EncoderType, typename TransportType >
+class Invoker
 {
 
-    using SelfType = typename std::conditional<
-        std::is_same<DerivedType, Details::None>::value, Invoker, DerivedType
-        >::type;
-
 public:
-
-
     using Type = Invoker;
 
     template<typename ...TArgs>
-    Invoker( TArgs&&... args)
-        : BaseType(std::forward<TArgs>(args)...)
+    Invoker(TArgs&&... args)
+        : transportLayer(std::forward<TArgs>(args)...)
     {
-
+       //transportLayer.registerMsgHandler(std::bind(&Invoker::handleResp, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     }
-    virtual ~Invoker(){}
+    ~Invoker(){}
+
+
+    template<typename ...TArgs>
+    void start(TArgs&&... args)
+    {
+        transportLayer.start(std::forward<TArgs>(args)...);
+    }
+
+    void stop()
+    {
+        transportLayer.stop();
+    }
 
     template<typename R, typename... TArgs>
     auto execute(std::string&& procName, TArgs&&... args )
@@ -92,10 +98,13 @@ public:
                                   asyncOp->id(),
                                   std::forward<TArgs>(args)...);
 
-        EncoderType::encode(request, [&](const char* data, size_t size)
-        {
-            this->send(data,size,nullptr);
-        });
+        auto streamBuff = transportLayer.nextBuffer();
+        std::ostream os(streamBuff.get());
+        EncoderType::encode(request, os);
+//        transportLayer.sendMsg(*streamBuff, [streamBuff, promise](auto const& ec)
+//        {
+
+//        });
 
         return promise->get_future();
 
@@ -117,11 +126,13 @@ public:
                                   asyncOp->id(),
                                   std::forward<TArgs>(args)...);
 
-        EncoderType::encode(request, [&](const char* data, size_t size)
-        {
-            this->send(data,size,nullptr);
-        });
+        auto streamBuff = transportLayer.nextBuffer();
+        std::ostream os(streamBuff.get());
+        EncoderType::encode(request, os);
+//        transportLayer.sendMsg(*streamBuff, [streamBuff, promise](auto const& ec)
+//        {
 
+//        });
         return promise->get_future();
 
     }
@@ -143,10 +154,13 @@ public:
                                   asyncOp->id(),
                                   std::forward<TArgs>(args)...);
 
-        EncoderType::encode(request, [&](const char* data, size_t size)
-        {
-            this->send(data,size, nullptr);
-        });
+        auto streamBuff = transportLayer.nextBuffer();
+        std::ostream os(streamBuff.get());
+        EncoderType::encode(request, os);
+//        transportLayer.sendMsg(*streamBuff, [streamBuff](auto const& ec)
+//        {
+
+//        });
 
 
     }
@@ -166,10 +180,13 @@ public:
                                   asyncOp->id(),
                                   std::forward<TArgs>(args)...);
 
-        EncoderType::encode(request, [&](const char* data, size_t size)
-        {
-            this->send(data,size, nullptr);
-        });
+        auto streamBuff = transportLayer.nextBuffer();
+        std::ostream os(streamBuff.get());
+        EncoderType::encode(request, os);
+//        transportLayer.sendMsg(*streamBuff, [streamBuff](auto const& ec)
+//        {
+
+//        });
 
 
     }
@@ -180,18 +197,24 @@ public:
 
         Notification<TArgs...> notification(std::forward<std::string>(procName), std::forward<TArgs>(args)...);
 
-        EncoderType::encode(notification, [&](const char* data, size_t size)
-        {
-            this->send(data,size, nullptr);
-        });
+
+        auto streamBuff = transportLayer.nextBuffer();
+        std::ostream os(streamBuff.get());
+        EncoderType::encode(notification, os);
+//        transportLayer.sendMsg(*streamBuff, [streamBuff](auto const& ec)
+//        {
+
+//        });
     }
 
-protected:
-    virtual void send(const char* msg, size_t len, TokenType const& userToken) = 0;
+
+private:
 
     void handleResp(const char* msg, size_t size, TokenType const& userToken)
     {
-        EncoderType::decodeResp(msg, size, static_cast<SelfType&>(*this));
+        std::string str(msg, size);
+        std::stringstream is(str);
+        EncoderType::decodeResp(is, *this);
     }
 
 private:
@@ -208,7 +231,8 @@ private:
         }
     }
 
-private:
+private:    
+    TransportType  transportLayer;
     AsyncManager<int> asyncManager;
     async::ThreadPool<> threadPool;
 

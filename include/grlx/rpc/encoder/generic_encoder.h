@@ -31,6 +31,7 @@
 #include <sstream>
 #include <iomanip>
 #include <iostream>
+#include <type_traits>
 
 
 #include <cereal/types/array.hpp>
@@ -70,6 +71,16 @@ namespace grlx
 namespace rpc
 {
 
+namespace details
+{
+template<class, class = std::void_t<> >
+struct HasMsgType : std::false_type{};
+
+template<class T>
+struct HasMsgType <T, std::void_t<typename T::MsgType>> : std::true_type{};
+
+}
+
 template<typename TOuputArchive, typename TInputArchive>
 class GenericEncoder
 {
@@ -79,21 +90,29 @@ public:
     using ParamsType = TInputArchive;
     using ResultType = TInputArchive;
 
-    template<typename TMsg, typename TSenderF>
-    static void encode(TMsg const& msg, TSenderF send)
-    {
+//    template<typename TMsg, typename TOStream>
+//    static void encode(TMsg const& msg, TOStream& os)
+//    {
 
-        std::ostringstream os;
+//        TOuputArchive archive(os);
+//        encodeMsg(msg, archive);
+//    }
+
+
+    template<typename T, typename TOStream>
+    static void encode(T const& t, TOStream& os)
+    {
+        TOuputArchive archive(os);
+        if constexpr (details::HasMsgType<T>::value)
         {
-            TOuputArchive archive(os);
-            encodeMsg(msg, archive);
+            archive( cereal::make_nvp("msgtype", t.MsgType ) );
         }
 
-        auto buffer = os.str();
-
-        send(buffer.data(), buffer.size());
-
+        archive(t);
     }
+
+
+
     template<typename Archive, typename ...TArgs>
     static void encodeMsg(Request<TArgs...> const& msg, Archive& archive)
     {
@@ -132,67 +151,64 @@ public:
 
 
 
-    template<typename Ch, typename HandlerType>
-    static bool decodeReq(Ch* buffer, int size, HandlerType& handler, TokenType userToken)
+    template<typename TIStream, typename HandlerType>
+    static bool decodeReq(TIStream& is, HandlerType& handler, TokenType userToken)
     {
-        std::string str(buffer, size);
-        std::istringstream is( str );
 
+        TInputArchive archive(is);
+        MsgType::Type msgType;
+
+        archive( cereal::make_nvp("msgtype", msgType ) );
+
+        switch(msgType)
         {
-            TInputArchive archive(is);
-            MsgType::Type msgType;
-
-            archive( cereal::make_nvp("msgtype", msgType ) );
-
-            switch(msgType)
+            case MsgType::Invalid:
             {
-                case MsgType::Invalid:
-                {
-                    break;
-                }
-                case MsgType::Request:
-                {
-                    int id;
-                    std::string method;
-                    int paramCount;
-                    std::string signature;
-                    archive( cereal::make_nvp("id", id ) );
-                    archive( cereal::make_nvp("method", method ) );
-                    archive( cereal::make_nvp("paramcount",  paramCount));
-                    handler.exec(method, id, archive, userToken);
-
-
-                    break;
-                }
-                case MsgType::Response:
-                {
-                    break;
-                }
-                case MsgType::Notification:
-                {
-                    std::string method;
-                    int paramCount;
-                    archive( cereal::make_nvp("method", method ) );
-                    archive( cereal::make_nvp("paramcount",  paramCount));
-                    handler.exec(method, archive, userToken);
-                    break;
-                }
-                case MsgType::Error:
-                {
-                    break;
-                }
-                default:
                 break;
             }
+            case MsgType::Request:
+            {
+
+
+                int id;
+                std::string method;
+                int paramCount;
+                std::string signature;
+                archive( cereal::make_nvp("id", id ) );
+                archive( cereal::make_nvp("method", method ) );
+                archive( cereal::make_nvp("paramcount",  paramCount));
+                handler.exec(method, id, archive, userToken);
+
+
+                break;
+            }
+            case MsgType::Response:
+            {
+                break;
+            }
+            case MsgType::Notification:
+            {
+                std::string method;
+                int paramCount;
+                archive( cereal::make_nvp("method", method ) );
+                archive( cereal::make_nvp("paramcount",  paramCount));
+                handler.exec(method, archive, userToken);
+                break;
+            }
+            case MsgType::Error:
+            {
+                break;
+            }
+            default:
+                break;
         }
+
         return false;
     }
 
-    template<typename Ch, typename HandlerType>
-    static bool decodeResp(Ch* buffer, int size, HandlerType& handler)
+    template<typename TIStream, typename HandlerType>
+    static bool decodeResp(TIStream& is, HandlerType& handler)
     {
-        std::string str(buffer, size);
-        std::istringstream is( str );
 
         TInputArchive archive(is);
 
@@ -234,8 +250,8 @@ public:
         return true;
     }
 
-    template<typename TParams, typename T>
-    static bool decodeType(TParams& archive, T& t)
+    template<typename TArchive, typename T>
+    static bool decodeType(TArchive& archive, T& t)
     {
         archive(t);
         return true;

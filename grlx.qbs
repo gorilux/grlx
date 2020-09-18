@@ -15,9 +15,7 @@ Product {
 
 
     cpp.cxxLanguageVersion: "c++17";
-    cpp.cxxFlags: ["-Wno-unused-parameter",
-                   "-Wno-gnu-string-literal-operator-template",
-                   "-Wno-unused-private-field"]
+    cpp.cxxFlags: ["-Wno-unused-parameter" ]
 
     //type: ["dynamiclibrary"]
     type: ["staticlibrary"]
@@ -25,13 +23,14 @@ Product {
     cpp.includePaths: [
         "include",
         "include/grlx/service",
-        "include/grlx/rpc/transport/zmq",
         "include/grlx/rpc/transport"
     ]
-    files: [       
+
+    cpp.defines: [ "RAPIDJSON_HAS_STDSTRING", "RAPIDJSON_HAS_CXX11_RVALUE_REFS", "PETRA_USE_UDL"]
+    files: [
         "include/**/*.h",
         "include/**/*.hpp",
-        "cpp/**/*.cpp"
+        "cpp/**/*.cpp",        
     ]
 
 
@@ -43,17 +42,17 @@ Product {
             "include"
         ]
 
-        cpp.defines: [ "ASIO_STANDALONE", "RAPIDJSON_HAS_STDSTRING", "RAPIDJSON_HAS_CXX11_RVALUE_REFS", "PETRA_USE_UDL"]
+        cpp.defines: [ "RAPIDJSON_HAS_STDSTRING", "RAPIDJSON_HAS_CXX11_RVALUE_REFS", "PETRA_USE_UDL"]
 
         cpp.cxxLanguageVersion: "c++17";
-        cpp.cxxFlags: ["-Wno-unused-parameter",
-                       "-Wno-gnu-string-literal-operator-template",
-                       "-Wno-unused-private-field"]
+        cpp.cxxFlags: ["-Wno-unused-parameter"]
         
         //cpp.cxxStandardLibrary: "libstdc++";
 
         //cpp.libraryPath: xyzPath + "/lib"
-        cpp.staticLibraries: "zmq"
+        //cpp.staticLibraries: "zmq"
+        cpp.staticLibraries: ["boost_coroutine"]
+        cpp.dynamicLibraries: ["ssl", "crypto"]
     }
 
 

@@ -41,6 +41,7 @@ namespace rpc
 template<typename TReturn, typename ...TArgs>
 struct Request
 {
+    static constexpr MsgType::Type Type = MsgType::Request;
 
     using ArgsType   = std::tuple<TArgs...>;
     using ReturnType = TReturn;
@@ -50,6 +51,8 @@ struct Request
     Request(std::string&& method, int id, TArgs&&... args)
         : method(method), id(id), args(std::forward_as_tuple(args...)){}
 
+    Request(){}
+
     constexpr static int  numArgs = sizeof ... (TArgs);
     std::string method;
     int id;
@@ -57,8 +60,11 @@ struct Request
 
     template<class Archive>
     void serialize(Archive& archive)
-    {
-
+    {       
+        archive( cereal::make_nvp("id"        , id ));
+        archive( cereal::make_nvp("method"    , method ));
+        archive( cereal::make_nvp("paramcount", numArgs ));
+        archive( cereal::make_nvp("params"    , args ));
     }
 
 //    template <class Archive>
@@ -73,13 +79,16 @@ struct Request
 template<typename TResult>
 struct Reply
 {
+    static constexpr MsgType::Type Type = MsgType::Response;
+
     int id;
     TResult result;
 
     template<class Archive>
     void serialize(Archive& archive)
-    {
-
+    {        
+        archive( cereal::make_nvp("id", id ));
+        archive( cereal::make_nvp("result", result ));
     }
 
     template <class Archive>
@@ -92,12 +101,14 @@ struct Reply
 template<>
 struct Reply<void>
 {
+    static constexpr MsgType::Type Type = MsgType::Response;
+
     int id;
 
     template<class Archive>
     void serialize(Archive& archive)
-    {
-
+    {                
+        archive( cereal::make_nvp("id", id ));
     }
 
     template <class Archive>
@@ -112,6 +123,8 @@ template<typename ...TArgs>
 struct Notification
 {
 
+    static constexpr MsgType::Type Type = MsgType::Notification;
+
     using ArgsType = std::tuple<TArgs...>;
 
     std::type_index typeIndex = typeid(void(TArgs...));
@@ -125,8 +138,10 @@ struct Notification
 
     template<class Archive>
     void serialize(Archive& archive)
-    {
-
+    {        
+        archive( cereal::make_nvp("method", method ));
+        archive( cereal::make_nvp("paramcount", numArgs ));
+        archive( cereal::make_nvp("params", args ));
     }
 
     template <class Archive>
