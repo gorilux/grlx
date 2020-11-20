@@ -11,6 +11,6 @@ add_library(grlx STATIC ${GRLX_SOURCES})
 
 #target_include_directories ( grlx PUBLIC ${GRLX_INCLUDE} ${GRLX_RAPIDJSON_INCLUDE})
 target_include_directories ( grlx INTERFACE
-                            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/grlx>)
+                            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 #set_target_properties(grlx PROPERTIES COMPILE_FLAGS -DBOOST_ASIO_DISABLE_CONCEPTS)         
 target_link_libraries(grlx)
