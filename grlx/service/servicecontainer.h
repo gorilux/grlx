@@ -136,6 +136,7 @@ public:
         auto id = std::type_index(typeid(T));
 
         this->addService(id, serviceInfo);
+                
     }
     template<typename T, typename U>
     void addService(const std::shared_ptr<U>& serviceInstance)
@@ -169,6 +170,16 @@ public:
     template<typename T>
     std::shared_ptr<T> get()
     {
+        return getService<T>();
+    }
+
+    template<typename T>
+    std::shared_ptr<T> get( std::function< std::shared_ptr<T> () > serviceCreatorCallback )
+    {
+        if(!hasService<T>())
+        {
+            addService<T>(serviceCreatorCallback);
+        }        
         return getService<T>();
     }
 
