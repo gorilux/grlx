@@ -1,0 +1,67 @@
+cmake_minimum_required (VERSION 3.15)
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/modules/")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/")
+
+
+project(grlx LANGUAGES CXX C)
+include(FetchContent)
+
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+add_compile_options("-Wall")
+add_compile_options("-fcoroutines")
+include(GrlxDependencies)
+
+add_library(grlx_base INTERFACE)
+add_library(grlx::base ALIAS grlx_base)
+
+# add_definitions(-DBOOST_ASIO_DISABLE_CONCEPTS)
+
+target_compile_options(grlx_base 
+    INTERFACE -std=c++20 -fcoroutines
+)
+
+target_compile_definitions(grlx_base INTERFACE BOOST_BEAST_USE_STD_STRING_VIEW)
+
+target_include_directories( grlx_base 
+    INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+target_link_libraries( grlx_base INTERFACE 
+    lib::cereal
+#    Boost::asio
+    Boost::boost
+#    OpenSSL::headers
+    Threads::Threads
+    Boost::boost 
+    Boost::regex     
+    OpenSSL::SSL 
+    OpenSSL::Crypto    
+    nlohmann_json
+    skyr::skyr-url 
+    
+)
+
+# include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+file(GLOB_RECURSE lib_grlx_sources "lib/**/*.cpp" "./include/**/*.h"  "./include/**/*.hpp")
+
+add_library(grlx STATIC ${lib_grlx_sources})
+
+target_link_libraries(grlx grlx::base)
+
+add_library(lib::grlx ALIAS grlx)
+
+#add_subdirectory(src)
+enable_testing()
+add_subdirectory(test)
+
+
+
+#add_library()
+
+

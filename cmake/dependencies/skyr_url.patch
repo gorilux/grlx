@@ -1,0 +1,135 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index a11fe236..0e77889b 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -6,6 +6,7 @@
+ 
+ cmake_minimum_required(VERSION 3.17)
+ 
++
+ project(
+         skyr-url
+         VERSION 2.0.0
+@@ -14,7 +15,7 @@ project(
+         LANGUAGES CXX
+ )
+ 
+-option(skyr_BUILD_TESTS "Build the URL tests." ON)
++option(skyr_BUILD_TESTS "Build the URL tests." OFF)
+ option(skyr_BUILD_DOCS "Build the URL documentation." OFF)
+ option(skyr_BUILD_EXAMPLES "Build the URL examples." OFF)
+ option(skyr_FULL_WARNINGS "Build the library with all warnings turned on." ON)
+@@ -27,6 +28,29 @@ option(skyr_ENABLE_FILESYSTEM_FUNCTIONS "Enable functions to convert URL to std:
+ option(skyr_ENABLE_JSON_FUNCTIONS "Enable functions to convert URL components to JSON" ON)
+ option(skyr_BUILD_V2 "Build v2, which uses C++20 features" OFF)
+ 
++include(FetchContent)
++
++FetchContent_Declare(
++  tl-expected
++  GIT_REPOSITORY https://github.com/TartanLlama/expected.git
++)
++
++FetchContent_Declare(
++  range-v3 
++  GIT_REPOSITORY https://github.com/ericniebler/range-v3.git  
++)
++
++FetchContent_Declare(
++  nlohmann_json
++  GIT_REPOSITORY https://github.com/nlohmann/json.git
++  GIT_TAG v3.9.1
++)
++
++
++
++
++
++
+ set(CMAKE_VERBOSE_MAKEFILE true)
+ if (skyr_BUILD_V2)
+     set(CMAKE_CXX_STANDARD 20)
+@@ -36,10 +60,29 @@ endif()
+ set(CMAKE_CXX_EXTENSIONS OFF)
+ set(CMAKE_CXX_STANDARD_REQUIRED ON)
+ 
+-find_package(tl-expected CONFIG REQUIRED)
+-find_package(range-v3 CONFIG REQUIRED)
+ 
+-if (skyr_ENABLE_JSON_FUNCTIONS)
++
++FetchContent_MakeAvailable(range-v3 tl-expected)
++
++FetchContent_GetProperties(nlohmann_json)
++if(NOT nlohmann_json_POPULATED)
++  FetchContent_Populate(nlohmann_json)
++  # add_subdirectory(${nlohmann_json_SOURCE_DIR} ${nlohmann_json_BINARY_DIR} EXCLUDE_FROM_ALL)
++  SET(BUILD_TESTING OFF)
++  add_subdirectory(${nlohmann_json_SOURCE_DIR} ${nlohmann_json_BINARY_DIR})
++  
++endif()
++
++
++if(NOT TARGET tl::expected)
++    find_package(tl-expected CONFIG REQUIRED)
++endif()
++
++if(NOT TARGET range-v3)
++    find_package(range-v3 CONFIG REQUIRED)
++endif()
++
++if (skyr_ENABLE_JSON_FUNCTIONS AND NOT TARGET nlohmann_json)
+     find_package(nlohmann_json CONFIG REQUIRED)
+ endif()
+ 
+@@ -49,6 +92,9 @@ if (skyr_USE_STATIC_CRT AND ${CMAKE_CXX_COMPILER_ID} MATCHES MSVC)
+ endif()
+ 
+ 
++
++
++
+ add_subdirectory(src)
+ 
+ # Testing
+diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
+index 39ce3bcf..da08d50b 100644
+--- a/tests/CMakeLists.txt
++++ b/tests/CMakeLists.txt
+@@ -1,3 +1,16 @@
++FetchContent_Declare(
++  fmt
++  GIT_REPOSITORY https://github.com/fmtlib/fmt.git  
++)
++
++FetchContent_Declare(
++  Catch2
++  GIT_REPOSITORY https://github.com/catchorg/Catch2.git  
++)
++
++
++FetchContent_MakeAvailable(fmt Catch2)
++
+ function(skyr_create_test file_name output_dir test_name version)
+     skyr_remove_extension(${file_name} base)
+     set(test ${base}-${version})
+diff --git a/tests/v1/CMakeLists.txt b/tests/v1/CMakeLists.txt
+index f9587684..7135cb9b 100644
+--- a/tests/v1/CMakeLists.txt
++++ b/tests/v1/CMakeLists.txt
+@@ -5,8 +5,15 @@
+ 
+ include(${PROJECT_SOURCE_DIR}/cmake/skyr-url-functions.cmake)
+ 
++
++if(NOT TARGET Catch2::Catch2)
+ find_package(Catch2 CONFIG REQUIRED)
++endif()
++
++if(NOT TARGET fmt::fmt)
+ find_package(fmt CONFIG REQUIRED)
++endif()
++
+ 
+ set(clang $<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>)
+ set(libcxx $<AND:${clang},$<BOOL:${skyr_BUILD_WITH_LLVM_LIBCXX}>>)

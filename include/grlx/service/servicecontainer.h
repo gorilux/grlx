@@ -193,6 +193,7 @@ private:
         if(objectMap.find(id) != objectMap.end())
         {
             //throw grlx::Exception("Service already exists", 0);
+            //
         }
         objectMap[id] = serviceInfoBase;
     }
