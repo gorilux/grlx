@@ -28,7 +28,7 @@ target_compile_options(grlx_base
 target_compile_definitions(grlx_base INTERFACE BOOST_BEAST_USE_STD_STRING_VIEW)
 
 target_include_directories( grlx_base 
-    INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/src
+  INTERFACE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
 target_link_libraries( grlx_base INTERFACE 
