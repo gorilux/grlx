@@ -16,10 +16,6 @@ public:
   using string_type = base_t::string_type;
   using skyr::url::url;
 
-  // template <typename... ArgsT>
-  // url(ArgsT... args)
-  //     : base_t(std::forward<ArgsT>(args)...) {}
-
   string_type target() const {
     return this->pathname() + this->search() + this->hash();
   }
