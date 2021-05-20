@@ -48,22 +48,10 @@ using plain_or_tls = std::variant<std::monostate, tcp_layer, tls_layer>;
 
 class Http {
 public:
-  Http(asio::io_context& ioc)
-      : ioc(std::in_place_type<boost::asio::io_context*>, &ioc) {
-  }
 
-  Http(asio::io_context& ioc, std::string base_url)
-      : ioc(std::in_place_type<boost::asio::io_context*>, &ioc)
-      , base_url(base_url) {
-  }
+  Http() {}
+  Http(std::string base_url){}
 
-  asio::io_context& context() {
-    if (std::holds_alternative<boost::asio::io_context>(ioc)) {
-      return std::get<boost::asio::io_context>(ioc);
-    } else {
-      return *std::get<boost::asio::io_context*>(ioc);
-    }
-  }
   bool is_open() {
     if (std::holds_alternative<tls_layer>(stream)) {
       return tls_stream().next_layer().socket().is_open();
@@ -144,7 +132,9 @@ private:
 
     apply_parameters(request);
 
-    tcp::resolver resolver(context());
+    auto executor = co_await asio::this_coro::executor;
+        
+    tcp::resolver resolver(executor);
 
     auto endpoints = co_await resolver.async_resolve(target_url.hostname(), target_url.port(), asio::use_awaitable);
 
@@ -158,7 +148,7 @@ private:
     bool is_secure = (target_url.scheme() == "https");
 
     if (is_secure) {
-      stream.emplace<tls_layer>(context(), ssl_ctx);
+      stream.emplace<tls_layer>(executor, ssl_ctx);
       // Set SNI Hostname (many hosts need this to handshake successfully)
       // XXX: openssl specificae, abstract this shit please
       if (!SSL_set_tlsext_host_name(tls_stream().native_handle(), target_url.host().data())) {
@@ -168,7 +158,7 @@ private:
       }
       socket = &tls_stream().next_layer();
     } else {
-      stream.emplace<tcp_layer>(context());
+      stream.emplace<tcp_layer>(executor);
       socket = &plain_stream();
     }
 
@@ -283,8 +273,7 @@ private:
     return true;
   }
 
-private:
-  std::variant<boost::asio::io_context, boost::asio::io_context*> ioc{};
+private:  
   std::optional<url>                                              base_url;
   net::url                                                        current_url;
   ssl::context                                                    ssl_ctx{ssl::context::tlsv12_client};
