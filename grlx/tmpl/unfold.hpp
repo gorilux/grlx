@@ -20,6 +20,13 @@ void unfold_n(Fn fn, Tuple&& tuple, std::index_sequence<is...>) {
 }
 } // namespace impl
 
+// template <std::size_t n, class Fn, typename... Args>
+// void unfold(Fn fn, Args... args) {
+//   static_assert(sizeof...(Args) % n == 0);
+//   impl::unfold_n<n>(fn, std::forward_as_tuple(std::forward<Args>(args)...),
+//                     std::make_index_sequence<sizeof...(Args) / n>{});
+// }
+
 template <std::size_t n, class Fn, typename... Args>
 void unfold(Fn fn, Args&&... args) {
   static_assert(sizeof...(Args) % n == 0);

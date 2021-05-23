@@ -3,8 +3,9 @@
 #include <grlx/net/http/field_arg.hpp>
 
 #include <initializer_list>
+#include <vector>
 
 namespace grlx::net::http {
-using headers = std::initializer_list<field_arg>;
+using Headers = std::vector<field_arg>;
 
 }

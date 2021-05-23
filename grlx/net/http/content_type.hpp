@@ -8,23 +8,23 @@
 
 namespace grlx::net::http {
 
-class content_type : private std::array<std::string, 3> {
+class Content_Type : private std::array<std::string, 3> {
   using base_t = std::array<std::string, 3>;
 
 public:
-  content_type() = default;
+  Content_Type() = default;
 
-  explicit content_type(std::string_view type,
+  explicit Content_Type(std::string_view type,
                         std::string_view charset  = "",
                         std::string_view boundary = "");
 
 private:
-  explicit content_type(std::string&& type,
+  explicit Content_Type(std::string&& type,
                         std::string&& charset,
                         std::string&& boundary);
 
 public:
-  static content_type parse(std::string_view sv);
+  static Content_Type parse(std::string_view sv);
 
   std::string const& type() const;
   void               type(std::string_view);
@@ -34,9 +34,9 @@ public:
   void               boundary(std::string_view);
 };
 
-bool operator==(content_type const& lhs, content_type const& rhs);
-bool operator!=(content_type const& lhs, content_type const& rhs);
+bool operator==(Content_Type const& lhs, Content_Type const& rhs);
+bool operator!=(Content_Type const& lhs, Content_Type const& rhs);
 
-std::ostream& operator<<(std::ostream& os, content_type const& ct);
+std::ostream& operator<<(std::ostream& os, Content_Type const& ct);
 
 } // namespace grlx::net::http

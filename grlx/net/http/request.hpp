@@ -13,16 +13,16 @@ namespace grlx::net::http {
 
 
 template <typename DynamicBuffer>
-class basic_request : public message<true, DynamicBuffer>
+class Basic_Request : public Message<true, DynamicBuffer>
 {
-  using base_t = message<true, DynamicBuffer>;
+  using base_t = Message<true, DynamicBuffer>;
 
 public:
-  basic_request(beast::http::verb verb, url uri);
+  Basic_Request(beast::http::verb verb, url uri);
 
   url const& uri() const;
   void accept(std::string_view ct);
-  void accept(http::content_type const& ct);
+  void accept(http::Content_Type const& ct);
 
 private:
   url _uri;
@@ -31,7 +31,7 @@ private:
 // =================
 
 template <typename DynamicBuffer>
-basic_request<DynamicBuffer>::basic_request(beast::http::verb verb, url uri)
+Basic_Request<DynamicBuffer>::Basic_Request(beast::http::verb verb, url uri)
   : base_t(verb, uri.target(), 11), _uri(std::move(uri))
 { 
   this->set(beast::http::field::host, _uri.host());
@@ -40,23 +40,23 @@ basic_request<DynamicBuffer>::basic_request(beast::http::verb verb, url uri)
 }
 
 template <typename DynamicBuffer>
-url const& basic_request<DynamicBuffer>::uri() const
+url const& Basic_Request<DynamicBuffer>::uri() const
 {
   return _uri;
 }
 
 template <typename DynamicBuffer>
-void basic_request<DynamicBuffer>::accept(std::string_view ct)
+void Basic_Request<DynamicBuffer>::accept(std::string_view ct)
 {
   this->set(beast::http::field::accept, ct);
 }
 
 template <typename DynamicBuffer>
-void basic_request<DynamicBuffer>::accept(http::content_type const& ct)
+void Basic_Request<DynamicBuffer>::accept(http::Content_Type const& ct)
 {
   this->set(beast::http::field::accept, ct);
 }
 
-using request = basic_request<beast::multi_buffer>;
+using Request = Basic_Request<beast::multi_buffer>;
   
 }

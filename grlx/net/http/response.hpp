@@ -14,9 +14,9 @@
 namespace grlx::net::http {
 
 template <typename DynamicBuffer>
-class basic_response : public message<false, DynamicBuffer> {
+class Basic_Response : public Message<false, DynamicBuffer> {
 public:
-  using base_t          = message<false, DynamicBuffer>;
+  using base_t          = Message<false, DynamicBuffer>;
   using base_t::operator=;
   using base_t::base_t;
   bool ok() const
@@ -25,6 +25,6 @@ public:
   }
 };
 
-using response = basic_response<beast::multi_buffer>;
+using Response = Basic_Response<beast::multi_buffer>;
 
 } // namespace grlx::net::http
