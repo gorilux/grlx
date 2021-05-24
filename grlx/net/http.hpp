@@ -2,8 +2,8 @@
 
 #include <exception>
 #include <grlx/net/http/authorization.hpp>
-#include <grlx/net/http/body.hpp>
 #include <grlx/net/http/field.hpp>
+#include <grlx/net/http/parameters.hpp>
 #include <grlx/net/http/headers.hpp>
 #include <grlx/net/http/request.hpp>
 #include <grlx/net/http/response.hpp>
@@ -64,11 +64,11 @@ public:
   }
 
   template <typename... TArgs> asio::awaitable<http::Response> get(std::string_view target, TArgs... args) {
-    co_return co_await perform_request(beast::http::verb::get, target, std::forward<TArgs>(args)...);
+    return perform_request(beast::http::verb::get, target, std::forward<TArgs>(args)...);
     //co_return co_await perform_request(beast::http::verb::get, target, args...);
   }
   template <typename... TArgs> asio::awaitable<http::Response> post(std::string_view target, TArgs... args) {
-    co_return co_await perform_request(beast::http::verb::post, target, std::forward<TArgs>(args)...);
+    return perform_request(beast::http::verb::post, target, std::forward<TArgs>(args)...);
   }
   template <typename... TArgs> asio::awaitable<http::Response> head(std::string_view target, TArgs... args) {
     return perform_request(beast::http::verb::head, target, std::forward<TArgs>(args)...);
@@ -121,6 +121,14 @@ private:
                                  //std::cout << field.field_name << " " << field.value << std::endl;
                                  request.insert(field.field_name, field.value);
                                }
+                             },
+                             [&request,&target_url](grlx::net::http::Parameters const& parameters){
+                               for (auto const& parameter : parameters) {
+                                 //std::cout << field.field_name << " " << field.value << std::endl;
+                                 //request.insert(field.field_name, field.value);
+                                 target_url.search_parameters().set(parameter.key, parameter.value);
+                               }
+                               request.target(target_url.target());
                              },
                              [&request](nlohmann::json const& body) {
                                request.content(body.dump());
