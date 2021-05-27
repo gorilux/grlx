@@ -37,7 +37,8 @@ target_link_libraries( grlx_base INTERFACE
     Boost::boost
 #    OpenSSL::headers
     Threads::Threads
-    Boost::boost 
+    Boost::boost
+    Boost::filesystem 
     Boost::regex     
     OpenSSL::SSL 
     OpenSSL::Crypto    
