@@ -31,6 +31,7 @@ target_include_directories( grlx_base
   INTERFACE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
+if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
 target_link_libraries( grlx_base INTERFACE 
     lib::cereal
 #    Boost::asio
@@ -44,8 +45,8 @@ target_link_libraries( grlx_base INTERFACE
     OpenSSL::Crypto    
     nlohmann_json
     skyr::skyr-url 
-    
 )
+endif()
 
 # include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
@@ -58,8 +59,11 @@ target_link_libraries(grlx grlx::base)
 add_library(lib::grlx ALIAS grlx)
 
 #add_subdirectory(src)
+
+if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
 enable_testing()
 add_subdirectory(test)
+endif()
 
 
 
