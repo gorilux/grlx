@@ -1,10 +1,10 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index a11fe236..0e77889b 100644
+index 8105654a..e942f742 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -6,6 +6,7 @@
  
- cmake_minimum_required(VERSION 3.17)
+ cmake_minimum_required(VERSION 3.16)
  
 +
  project(
